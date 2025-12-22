@@ -1,8 +1,17 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from math import pow
 
 from .models import HeatTransferConfig
+
+
+@dataclass(frozen=True)
+class WallHeatLoss:
+    head_j_per_rad: float
+    piston_j_per_rad: float
+    liner_j_per_rad: float
+    total_j_per_rad: float
 
 
 def h_woschni_simplified_w_per_m2_k(
@@ -38,7 +47,7 @@ def calculate_wall_heat_loss_j_per_rad(
     area_liner_m2: float,
     cfg: HeatTransferConfig,
     omega_rad_per_s: float,
-) -> float:
+) -> WallHeatLoss:
     """
     Calculates the total heat loss to the walls from all surfaces in J/rad
     for a multi-zone wall temperature model.
@@ -48,7 +57,15 @@ def calculate_wall_heat_loss_j_per_rad(
     q_dot_liner = h_coeff * area_liner_m2 * (gas_temp_k - cfg.liner_temp_k)
 
     q_dot_total_w = q_dot_head + q_dot_piston + q_dot_liner
-    
-    # Convert from J/s (Watts) to J/rad
-    return q_dot_total_w / max(1e-9, omega_rad_per_s)
 
+    # Convert from J/s (Watts) to J/rad
+    scale = 1.0 / max(1e-9, omega_rad_per_s)
+    q_head = q_dot_head * scale
+    q_piston = q_dot_piston * scale
+    q_liner = q_dot_liner * scale
+    return WallHeatLoss(
+        head_j_per_rad=q_head,
+        piston_j_per_rad=q_piston,
+        liner_j_per_rad=q_liner,
+        total_j_per_rad=q_dot_total_w * scale,
+    )
