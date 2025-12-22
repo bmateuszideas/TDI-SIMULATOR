@@ -1,0 +1,24 @@
+# Core numerics and thermodynamics
+numpy==1.26.4
+scipy==1.13.1
+pandas==2.2.3
+sympy==1.13.1
+numdifftools==0.9.41
+fluids==1.0.26
+coolprop==6.6.0
+
+# Visualization
+matplotlib==3.9.2
+plotly==5.24.1
+
+# Machine learning
+scikit-learn==1.5.2
+xgboost==2.1.3
+lightgbm==4.5.0
+
+# Hyperparameter optimization
+optuna==3.6.1
+hyperopt==0.2.7
+
+# Configuration
+pyyaml==6.0.1

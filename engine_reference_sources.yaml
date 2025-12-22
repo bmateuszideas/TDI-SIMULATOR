@@ -1,0 +1,153 @@
+# ==============================================================================
+# VIRTUAL TDI - ENGINE CONFIGURATION SOURCE OF TRUTH
+# ==============================================================================
+# This file serves as the master repository for all physical and geometric
+# parameters of the engine model.
+#
+# Source Policy:
+# - Data is sourced from public VW documents (SSP, ETKA), OEM supplier
+#   datasheets (Bosch, Mahle), physical measurements, or derived via
+#   engineering calculations.
+# - Each parameter MUST have a 'source' field.
+# - This file is the single source of truth for initializing simulation models.
+# ------------------------------------------------------------------------------
+
+engine: "VW 1.9 TDI (ALH/EA827)"
+version: 1.0
+
+parameters:
+  # ----------------------------------------------------------------------------
+  # CRANKTRAIN GEOMETRY
+  # Core dimensions defining the engine's kinematic motion.
+  # ----------------------------------------------------------------------------
+  cranktrain:
+    bore:
+      value: 79.5
+      unit: mm
+      source: "VW SSP 198, ETKA"
+    stroke:
+      value: 95.5
+      unit: mm
+      source: "VW SSP 198, ETKA"
+    rod_length:
+      value: 144.0
+      unit: mm
+      source: "ETKA, Mahle Datasheet"
+    crank_radius:
+      value: 47.75
+      unit: mm
+      source: "Calculated (stroke / 2)"
+    cylinder_offset:
+      value: 0.5
+      unit: mm
+      source: "CAD models EA827, kompletna_lista_z_danymi.md"
+
+  # ----------------------------------------------------------------------------
+  # COMBUSTION CHAMBER & COMPRESSION
+  # Parameters defining the thermodynamic volume.
+  # ----------------------------------------------------------------------------
+  combustion_chamber:
+    compression_ratio:
+      value: "19.5:1"
+      unit: "-"
+      source: "VW SSP 198"
+    total_cylinders:
+      value: 4
+      unit: "-"
+      source: "VW SSP 198"
+
+  # ----------------------------------------------------------------------------
+  # VALVETRAIN
+  # Defines the engine's "breathing" characteristics.
+  # ----------------------------------------------------------------------------
+  valvetrain:
+    valves_per_cylinder:
+      value: 2
+      unit: "-"
+      source: "VW SSP 198"
+    intake_valve_diameter:
+      value: 35.95
+      unit: mm
+      source: "kompletna_lista_z_danymi_rozszerzona.md"
+    exhaust_valve_diameter:
+      value: 31.45
+      unit: mm
+      source: "kompletna_lista_z_danymi_rozszerzona.md"
+    max_valve_lift:
+      value: 8.5
+      unit: mm
+      source: "kompletna_lista_z_danymi_rozszerzona.md (for ALH camshaft)"
+
+  # ----------------------------------------------------------------------------
+  # INJECTION SYSTEM (VP37 - ALH 90HP baseline)
+  # Defines the fuel delivery system characteristics.
+  # ----------------------------------------------------------------------------
+  injection_system:
+    pump_type:
+      value: "Bosch VP37"
+      source: "VW SSP 211"
+    plunger_diameter:
+      value: 10.0
+      unit: mm
+      source: "kompletna_lista_z_danymi_rozszerzona.md (manual gearbox)"
+    nozzle_holes:
+      value: 5
+      unit: "-"
+      source: "VW SSP 211"
+    nozzle_hole_diameter:
+      value: 0.184
+      unit: mm
+      source: "kompletna_lista_z_danymi_rozszerzona.md (for ALH 90HP)"
+    opening_pressure_pilot:
+      value: 190
+      unit: bar
+      source: "VW SSP 211, Bosch Datasheet"
+    opening_pressure_main:
+      value: 300
+      unit: bar
+      source: "VW SSP 211, Bosch Datasheet"
+
+  # ----------------------------------------------------------------------------
+  # RECIPROCATING AND ROTATING MASSES
+  # Used for inertia, vibration, and load calculations.
+  # ----------------------------------------------------------------------------
+  masses:
+    piston:
+      value: 440
+      unit: g
+      source: "kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
+    wrist_pin:
+      value: 120
+      unit: g
+      source: "kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
+    rings_set:
+      value: 40
+      unit: g
+      source: "kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
+    total_conrod_mass:
+      value: 580 # Approximate value based on aftermarket parts
+      unit: g
+      source: "Aftermarket data (FCP/Hurricane, ~575-590g). OEM mass not found."
+    reciprocating_conrod_part:
+      value: 145 # Approx. 1/4 of total conrod mass
+      unit: g
+      source: "Calculated (total_conrod_mass / 4), a common engineering estimation."
+    total_reciprocating_mass_per_cyl:
+      value: 750 # 440 + 120 + 40 + 145
+      unit: g
+      source: "Calculated"
+    
+      # ----------------------------------------------------------------------------
+      # MANIFOLDS (0D Control Volumes)
+      # Initial estimates for intake/exhaust runner volumes.
+      # ----------------------------------------------------------------------------
+      manifolds:
+        intake_volume:
+          value: 2.0
+          unit: L
+          source: "Placeholder estimate. To be verified/updated in Milestone M2 (Manifolds)."
+        exhaust_volume:
+          value: 1.5
+          unit: L
+          source: "Placeholder estimate. To be verified/updated in Milestone M2 (Manifolds)."
+    
