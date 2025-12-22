@@ -9,8 +9,8 @@ from virtual_tdi.models import EngineGeometry
 class TestGeometry(unittest.TestCase):
     def setUp(self):
         """Load engine geometry from the master config file."""
-        config = load_yaml_config("engine_reference_sources.yaml")
-        self.geom: EngineGeometry = create_geometry_from_config(config)
+        self.config = load_yaml_config("engine_reference_sources.yaml")
+        self.geom: EngineGeometry = create_geometry_from_config(self.config)
         self.assertIsNotNone(self.geom)
 
     def test_volume_at_theta_zero_and_pi(self):
@@ -88,6 +88,20 @@ class TestGeometry(unittest.TestCase):
         self.assertAlmostEqual(dV_dtheta, expected_dV_dtheta, places=12)
         # The derivative should be strongly positive (volume increasing)
         self.assertGreater(dV_dtheta, 0)
+
+    def test_compression_ratio_and_compression_stroke_monotonicity(self):
+        comp_params = self.config["parameters"]["combustion_chamber"]
+        reference_cr = float(str(comp_params["compression_ratio"]["value"]).split(":")[0])
+        rel_error = abs(self.geom.compression_ratio - reference_cr) / reference_cr
+        self.assertLess(rel_error, 0.01, msg="Compression ratio mismatch exceeds 1% tolerance.")
+
+        prev_v = None
+        for i in range(181):
+            theta = math.pi + i * (math.pi / 180.0)
+            v, _, _ = cylinder_volume_m3(self.geom, theta)
+            if prev_v is not None:
+                self.assertLessEqual(v, prev_v + 1e-12, msg="Volume must decrease during compression stroke.")
+            prev_v = v
 
 
 if __name__ == "__main__":

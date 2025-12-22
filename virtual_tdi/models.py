@@ -12,6 +12,10 @@ class EngineGeometry:
     rod_length_m: float
     crank_radius_m: float
     offset_m: float
+    bowl_volume_m3: float
+    head_recess_m3: float
+    gasket_thickness_m: float
+    piston_protrusion_m: float
     compression_ratio: float
     cylinders: int = 4
 
@@ -25,8 +29,16 @@ class EngineGeometry:
 
     @property
     def clearance_volume_m3_per_cyl(self) -> float:
-        # CR = (Vs + Vc) / Vc
-        return self.swept_volume_m3_per_cyl / (self.compression_ratio - 1.0)
+        return (
+            self.bowl_volume_m3
+            + self.head_recess_m3
+            + self.piston_area_m2 * (self.gasket_thickness_m - self.piston_protrusion_m)
+        )
+
+    @property
+    def compression_ratio_from_geometry(self) -> float:
+        vc = self.clearance_volume_m3_per_cyl
+        return (self.swept_volume_m3_per_cyl + vc) / vc
 
 
 @dataclass(frozen=True)
