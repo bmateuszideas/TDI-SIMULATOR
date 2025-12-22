@@ -29,7 +29,11 @@ Parametry definiujące objętość termodynamiczną.
 | Stopień sprężania (CR) | 19.5:1 | - | VW SSP 198 |
 | Liczba cylindrów | 4 | - | VW SSP 198 |
 | Objętość skokowa cylindra (Vd) | 474.14 | cm³ | 🧮 Obliczone z `bore` i `stroke` |
-| Objętość komory spalania (Vc) | ~25.62 | cm³ | 🧮 Obliczone z `Vd` i `CR`. Wartość przybliżona, zależy od uszczelki. |
+| Objętość misy tłoka (bowl) | 17.5 | cm³ | **Estymacja** + dopasowanie do CR |
+| Objętość podfrezowania głowicy (head recess) | 4.5 | cm³ | **Estymacja** + dopasowanie do CR |
+| Grubość uszczelki głowicy | 1.53 | mm | Typowa uszczelka 1.9 TDI |
+| Wystawanie tłoka ponad blok | 0.8 | mm | **Estymacja** (ALH/AFN) |
+| Objętość komory spalania (Vc) | ~25.62 | cm³ | 🧮 `bowl + head recess + A_piston*(gasket - protrusion)` |
 
 ## 3. Układ Rozrządu (Valvetrain)
 
