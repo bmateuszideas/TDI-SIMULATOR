@@ -193,8 +193,11 @@ class SimulationConfig:
     scipy_rtol: float = 1.0e-7
     scipy_atol: float = 1.0e-9
     scipy_max_step_deg: float = 1.0
-    # Simple friction loss model for reporting (not fed back into cylinder dynamics).
-    fmep_pa: float = 1.0e5  # ~1 bar
+    # Friction loss model for reporting (not fed back into cylinder dynamics).
+    # FMEP_bar = A + B * (rpm / 1000) + C * Pmax_bar
+    fmep_a_bar: float = 1.0
+    fmep_b_bar_per_krpm: float = 0.0
+    fmep_c_bar_per_bar: float = 0.0
 
 
 @dataclass

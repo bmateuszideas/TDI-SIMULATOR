@@ -16,6 +16,10 @@ from .combustion import (
     maybe_arm_combustion,
 )
 from .flow import orifice_mdot_kg_per_s
+from .fmep import calculate_fmep_from_config
+from .geometry import geometry_at_theta
+from .heat_transfer import h_woschni_simplified_w_per_m2_k, calculate_wall_heat_loss_j_per_rad
+from .models import EngineGeometry, Fuel, SimulationConfig, ManifoldConfig, ManifoldState
 from .geometry import geometry_at_theta
 from .heat_transfer import calculate_wall_heat_loss_j_per_rad, h_woschni_simplified_w_per_m2_k
 from .models import EngineGeometry, Fuel, SimulationConfig, ManifoldConfig, ManifoldState
@@ -482,7 +486,9 @@ def simulate_full_cycle(
     wi_j = float(trapezoid(results["pressure"] * np.gradient(volume, theta_rad), theta_rad))
     imep_pa = wi_j / geom.swept_volume_m3_per_cyl
     indicated_torque_nm = (imep_pa * geom.swept_volume_m3_per_cyl * geom.cylinders) / (4.0 * pi)
-    brake_torque_nm = max(0.0, (imep_pa - cfg.models.fmep_pa) * geom.swept_volume_m3_per_cyl * geom.cylinders / (4.0 * pi))
+    pmax_pa = float(np.max(results["pressure"]))
+    fmep_pa = calculate_fmep_from_config(cfg.models, pmax_pa)
+    brake_torque_nm = max(0.0, (imep_pa - fmep_pa) * geom.swept_volume_m3_per_cyl * geom.cylinders / (4.0 * pi))
     power_w = brake_torque_nm * omega
     
     dt = (cfg.step_deg * DEG2RAD) / max(1e-9, omega)

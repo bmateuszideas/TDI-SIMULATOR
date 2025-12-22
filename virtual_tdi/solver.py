@@ -9,6 +9,7 @@ import numpy as np
 trapezoid = getattr(np, "trapezoid", np.trapz)
 
 from .combustion import CombustionScheduleRuntime, heat_release_rate_dq_dtheta, maybe_arm_combustion
+from .fmep import calculate_fmep_from_config
 from .geometry import geometry_at_theta
 from .heat_transfer import h_woschni_simplified_w_per_m2_k
 from .models import EngineGeometry, Fuel, InjectionSchedule, SimulationConfig
@@ -180,12 +181,14 @@ def simulate_closed_cycle(
     imep_pa = wi_j / geom.swept_volume_m3_per_cyl
     vd_total = geom.swept_volume_m3_per_cyl * geom.cylinders
     indicated_torque_nm = imep_pa * vd_total / (4.0 * pi)  # 4-stroke
-    brake_torque_nm = max(0.0, (imep_pa - cfg.fmep_pa) * vd_total / (4.0 * pi))
+    pmax_pa = float(np.max(pressure))
+    fmep_pa = calculate_fmep_from_config(cfg, pmax_pa)
+    brake_torque_nm = max(0.0, (imep_pa - fmep_pa) * vd_total / (4.0 * pi))
 
     metrics = {
         "mass_kg_per_cyl": mass_kg,
         "q_total_j_per_cyl": q_total_j,
-        "peak_pressure_bar": float(np.max(pressure) / 1.0e5),
+        "peak_pressure_bar": pmax_pa / 1.0e5,
         "peak_temp_k": float(np.max(temperature)),
         "wi_j_per_cyl": wi_j,
         "imep_bar": imep_pa / 1.0e5,
@@ -365,12 +368,14 @@ def simulate_closed_cycle_scipy(
     imep_pa = wi_j / geom.swept_volume_m3_per_cyl
     vd_total = geom.swept_volume_m3_per_cyl * geom.cylinders
     indicated_torque_nm = imep_pa * vd_total / (4.0 * pi)
-    brake_torque_nm = max(0.0, (imep_pa - cfg.fmep_pa) * vd_total / (4.0 * pi))
+    pmax_pa = float(np.max(pressure))
+    fmep_pa = calculate_fmep_from_config(cfg, pmax_pa)
+    brake_torque_nm = max(0.0, (imep_pa - fmep_pa) * vd_total / (4.0 * pi))
 
     metrics = {
         "mass_kg_per_cyl": mass_kg,
         "q_total_j_per_cyl": q_total_j,
-        "peak_pressure_bar": float(np.max(pressure) / 1.0e5),
+        "peak_pressure_bar": pmax_pa / 1.0e5,
         "peak_temp_k": float(np.max(T_grid)),
         "wi_j_per_cyl": wi_j,
         "imep_bar": imep_pa / 1.0e5,
