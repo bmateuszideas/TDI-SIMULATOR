@@ -89,7 +89,30 @@ def _make_argparser() -> argparse.ArgumentParser:
     p.add_argument("--t-intake-k", type=float, default=300.0, help="Full-cycle only: initial intake temperature [K]")
     p.add_argument("--p-exhaust-bar", type=float, default=1.15, help="Full-cycle only: initial exhaust pressure abs [bar]")
     p.add_argument("--t-exhaust-k", type=float, default=800.0, help="Full-cycle only: initial exhaust temperature [K]")
-    p.add_argument("--fmep-bar", type=float, default=1.0, help="Brake loss model: FMEP [bar]")
+    p.add_argument(
+        "--fmep-a-bar",
+        type=float,
+        default=1.0,
+        help="Brake loss model: FMEP A coefficient [bar].",
+    )
+    p.add_argument(
+        "--fmep-b-bar-per-krpm",
+        type=float,
+        default=0.0,
+        help="Brake loss model: FMEP B coefficient [bar/krpm].",
+    )
+    p.add_argument(
+        "--fmep-c-bar-per-bar",
+        type=float,
+        default=0.0,
+        help="Brake loss model: FMEP C coefficient [bar/bar] using peak cylinder pressure.",
+    )
+    p.add_argument(
+        "--fmep-bar",
+        type=float,
+        default=None,
+        help="Deprecated: fixed FMEP [bar]. Use --fmep-a-bar/--fmep-b-bar-per-krpm/--fmep-c-bar-per-bar.",
+    )
     p.add_argument("--ivo", type=float, default=-350.0, help="Intake valve open [deg]")
     p.add_argument("--ivc", type=float, default=-150.0, help="Intake valve close [deg]")
     p.add_argument("--evo", type=float, default=140.0, help="Exhaust valve open [deg]")
@@ -611,6 +634,9 @@ def main(argv: list[str] | None = None) -> int:
                 dmdtheta_kg_rad = inj_res.mdot_fuel_kg_s / omega_crank
                 injection_profile = (inj_theta_rad, dmdtheta_kg_rad)
 
+            fmep_a_bar = float(args.fmep_a_bar)
+            if args.fmep_bar is not None:
+                fmep_a_bar = float(args.fmep_bar)
             models = SimulationConfig(
                 rpm=args.rpm, step_deg=args.step_deg, fuel_mg_per_cycle_per_cyl=iq_eff,
                 combustion=make_combustion_config(hrr_model),
@@ -618,7 +644,10 @@ def main(argv: list[str] | None = None) -> int:
                 coolprop_fluid=str(args.coolprop_fluid), strict_backends=bool(args.strict_backends),
                 integrator=str(args.integrator), scipy_method=str(args.scipy_method),
                 scipy_rtol=float(args.scipy_rtol), scipy_atol=float(args.scipy_atol),
-                scipy_max_step_deg=float(args.scipy_max_step_deg), fmep_pa=float(args.fmep_bar) * 1e5,
+                scipy_max_step_deg=float(args.scipy_max_step_deg),
+                fmep_a_bar=fmep_a_bar,
+                fmep_b_bar_per_krpm=float(args.fmep_b_bar_per_krpm),
+                fmep_c_bar_per_bar=float(args.fmep_c_bar_per_bar),
             )
             cfg_full = FullCycleConfig(
                 rpm=args.rpm, step_deg=args.step_deg, cycles=max(1, args.cycles),
