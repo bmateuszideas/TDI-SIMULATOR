@@ -21,7 +21,7 @@ class TestDataset(unittest.TestCase):
         )
         rows = generate_dataset(cfg, out_csv=None)
         self.assertEqual(len(rows), 3)
-        self.assertIn("out_peak_pressure_bar", rows[0])
+        self.assertIn("out_peak_pressure_pa", rows[0])
         self.assertIn("iq_eff_mg_per_str", rows[0])
         self.assertIn("nozzle_diameter_mm", rows[0])
 

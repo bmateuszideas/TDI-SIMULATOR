@@ -185,10 +185,10 @@ def simulate_closed_cycle(
     metrics = {
         "mass_kg_per_cyl": mass_kg,
         "q_total_j_per_cyl": q_total_j,
-        "peak_pressure_bar": float(np.max(pressure) / 1.0e5),
+        "peak_pressure_pa": float(np.max(pressure)),
         "peak_temp_k": float(np.max(temperature)),
         "wi_j_per_cyl": wi_j,
-        "imep_bar": imep_pa / 1.0e5,
+        "imep_pa": imep_pa,
         "indicated_torque_nm": indicated_torque_nm,
         "brake_torque_nm_est": brake_torque_nm,
     }
@@ -370,10 +370,10 @@ def simulate_closed_cycle_scipy(
     metrics = {
         "mass_kg_per_cyl": mass_kg,
         "q_total_j_per_cyl": q_total_j,
-        "peak_pressure_bar": float(np.max(pressure) / 1.0e5),
+        "peak_pressure_pa": float(np.max(pressure)),
         "peak_temp_k": float(np.max(T_grid)),
         "wi_j_per_cyl": wi_j,
-        "imep_bar": imep_pa / 1.0e5,
+        "imep_pa": imep_pa,
         "indicated_torque_nm": indicated_torque_nm,
         "brake_torque_nm_est": brake_torque_nm,
     }

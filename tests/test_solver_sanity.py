@@ -34,8 +34,8 @@ class TestSolverSanity(unittest.TestCase):
             strict_backends=False,
         )
         result = simulate_closed_cycle(geom, fuel, schedule, cfg)
-        self.assertIn("peak_pressure_bar", result.metrics)
-        self.assertGreater(result.metrics["peak_pressure_bar"], 1.0)
+        self.assertIn("peak_pressure_pa", result.metrics)
+        self.assertGreater(result.metrics["peak_pressure_pa"], 1.0e5)
 
 
 if __name__ == "__main__":

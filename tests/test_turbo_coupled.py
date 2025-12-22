@@ -43,7 +43,7 @@ class TestTurboCoupled(unittest.TestCase):
         )
         turbo_cfg = TurboConfig(p_amb_pa=1.0e5, t_amb_k=300.0, pr_max=2.0)
         res = simulate_coupled_turbo(geom, fuel, schedule, cfg, turbo_cfg, iterations=2)
-        self.assertGreater(res.result.metrics["peak_pressure_bar"], 1.0)
+        self.assertGreater(res.result.metrics["peak_pressure_pa"], 1.0e5)
         self.assertTrue(len(res.history) >= 1)
 
 

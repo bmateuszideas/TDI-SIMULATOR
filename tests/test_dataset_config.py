@@ -65,7 +65,7 @@ class TestDatasetConfig(unittest.TestCase):
         with open(self.output_csv_path, 'r') as f:
             reader = csv.reader(f)
             header = next(reader)
-            self.assertIn("out_peak_pressure_bar", header)
+            self.assertIn("out_peak_pressure_pa", header)
             data = next(reader)
             self.assertEqual(len(data), len(header))
 
