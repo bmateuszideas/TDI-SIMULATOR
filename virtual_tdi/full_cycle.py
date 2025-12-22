@@ -205,8 +205,6 @@ def simulate_full_cycle(
         )
 
     def run_one_cycle(init_state: np.ndarray):
-        results = {k: np.zeros_like(theta_rad) for k in ["pressure", "temp", "mass", "p_intake", "t_intake", "p_exhaust", "t_exhaust", "mdot_in", "mdot_ex", "lift_i", "lift_e", "dq_comb", "dq_wall", "torque", "dm_fuel_main_mg_per_deg", "f_intake", "f_exhaust", "f_cyl"]}
-        state, runtime = init_state.copy(), CombustionScheduleRuntime()
         results = {
             k: np.zeros_like(theta_rad)
             for k in [
@@ -228,6 +226,9 @@ def simulate_full_cycle(
                 "dq_liner",
                 "torque",
                 "dm_fuel_main_mg_per_deg",
+                "f_intake",
+                "f_exhaust",
+                "f_cyl",
             ]
         }
         state, runtime = init_state.copy(), CombustionScheduleRuntime()
@@ -497,6 +498,7 @@ def simulate_full_cycle(
         "peak_pressure_pa": np.max(results["pressure"]),
         "peak_temp_k": np.max(results["temp"]),
         "imep_pa": imep_pa,
+        "imep_bar": imep_pa / 1.0e5,
         "indicated_torque_nm": indicated_torque_nm,
         "brake_torque_nm_est": brake_torque_nm,
         "brake_power_kw_est": power_w / 1000.0,
@@ -530,12 +532,6 @@ def simulate_full_cycle(
         egr_intake_frac=results["f_intake"],
         egr_exhaust_frac=results["f_exhaust"],
         egr_cylinder_frac=results["f_cyl"],
-        dq_comb_j_per_deg=results["dq_comb"],
-        dq_wall_j_per_deg=results["dq_wall"],
-        mdot_intake_kg_s=results["mdot_in"],
-        mdot_exhaust_kg_s=results["mdot_ex"],
-        intake_lift_frac=results["lift_i"],
-        exhaust_lift_frac=results["lift_e"],
         dq_comb_j_per_deg=results["dq_comb"],
         dq_wall_j_per_deg=results["dq_wall"],
         dq_head_j_per_deg=results["dq_head"],
