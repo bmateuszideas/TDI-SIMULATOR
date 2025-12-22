@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from math import pi
 from pathlib import Path
 from typing import Any
 
@@ -23,13 +24,39 @@ def create_geometry_from_config(config: dict[str, Any]) -> EngineGeometry:
     try:
         crank_params = config["parameters"]["cranktrain"]
         comp_params = config["parameters"]["combustion_chamber"]
+        bore_m = float(crank_params["bore"]["value"]) * 1e-3
+        stroke_m = float(crank_params["stroke"]["value"]) * 1e-3
+        bowl_volume_m3 = float(comp_params["bowl_volume"]["value"]) * 1e-6
+        head_recess_m3 = float(comp_params["head_recess_volume"]["value"]) * 1e-6
+        gasket_thickness_m = float(comp_params["gasket_thickness"]["value"]) * 1e-3
+        piston_protrusion_m = float(comp_params["piston_protrusion"]["value"]) * 1e-3
+        piston_area_m2 = pi * (bore_m**2) / 4.0
+        clearance_volume_m3 = (
+            bowl_volume_m3 + head_recess_m3 + piston_area_m2 * (gasket_thickness_m - piston_protrusion_m)
+        )
+        if clearance_volume_m3 <= 0.0:
+            raise ValueError("Computed clearance volume must be positive.")
+        swept_volume_m3 = piston_area_m2 * stroke_m
+        compression_ratio = (swept_volume_m3 + clearance_volume_m3) / clearance_volume_m3
+        compression_ratio_ref = float(str(comp_params["compression_ratio"]["value"]).split(":")[0])
+        if compression_ratio_ref > 0.0:
+            rel_error = abs(compression_ratio - compression_ratio_ref) / compression_ratio_ref
+            if rel_error > 0.01:
+                raise ValueError(
+                    "Compression ratio mismatch: computed "
+                    f"{compression_ratio:.3f} vs reference {compression_ratio_ref:.3f}."
+                )
         return EngineGeometry(
-            bore_m=float(crank_params["bore"]["value"]) * 1e-3,
-            stroke_m=float(crank_params["stroke"]["value"]) * 1e-3,
+            bore_m=bore_m,
+            stroke_m=stroke_m,
             rod_length_m=float(crank_params["rod_length"]["value"]) * 1e-3,
             crank_radius_m=float(crank_params["crank_radius"]["value"]) * 1e-3,
             offset_m=float(crank_params["cylinder_offset"]["value"]) * 1e-3,
-            compression_ratio=float(str(comp_params["compression_ratio"]["value"]).split(":")[0]),
+            bowl_volume_m3=bowl_volume_m3,
+            head_recess_m3=head_recess_m3,
+            gasket_thickness_m=gasket_thickness_m,
+            piston_protrusion_m=piston_protrusion_m,
+            compression_ratio=compression_ratio,
             cylinders=int(comp_params["total_cylinders"]["value"]),
         )
     except (KeyError, TypeError) as e:
