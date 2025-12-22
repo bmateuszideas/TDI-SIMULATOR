@@ -6,6 +6,12 @@ from virtual_tdi.valvetrain import ValveTiming
 
 
 class TestFullCycleSanity(unittest.TestCase):
+    def test_default_config_has_boundaries_and_valve_flow(self):
+        cfg = FullCycleConfig(rpm=1500.0)
+        self.assertIsNotNone(cfg.boundaries)
+        self.assertGreater(cfg.valve_flow.intake_valve_diameter_m, 0.0)
+        self.assertGreater(cfg.valve_flow.exhaust_valve_diameter_m, 0.0)
+
     def test_runs_and_positive_imep(self):
         bore = 79.5e-3
         stroke = 95.5e-3

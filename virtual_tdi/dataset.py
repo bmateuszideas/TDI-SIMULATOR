@@ -64,8 +64,8 @@ class DatasetConfig:
     chamber_volume_mm3: float = 200.0
     line_volume_mm3: float = 400.0
     back_pressure_bar: float = 50.0
-    thermo_backend: str = "coolprop"
-    flow_backend: str = "fluids"
+    thermo_backend: str = "simple"
+    flow_backend: str = "simple"
     coolprop_fluid: str = "Air"
     ignition_delay_model: str = "arrhenius"
     ignition_delay_deg: float = 5.0
@@ -92,7 +92,7 @@ def _resolve_map_path(path: Path | None, pattern: str) -> Path | None:
 def generate_dataset(
     cfg: DatasetConfig,
     *,
-    geom: EngineGeometry,
+    geom: EngineGeometry | None = None,
     out_csv: Path | None = None,
     # Optional explicit paths
     soi_map_path: Path | None = None,
@@ -104,6 +104,9 @@ def generate_dataset(
     vp37_cam_path: Path | None = None,
 ) -> list[dict[str, Any]]:
     rng = np.random.default_rng(int(cfg.seed))
+
+    if geom is None:
+        geom = create_geometry_from_config(load_yaml_config("engine_reference_sources.yaml"))
 
     valve_timing = ValveTiming()
     valve_flow = ValveFlow()

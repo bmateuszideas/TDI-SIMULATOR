@@ -16,10 +16,10 @@ class ValveTiming:
 
 @dataclass(frozen=True)
 class ValveFlow:
-    intake_valve_diameter_m: float
-    exhaust_valve_diameter_m: float
-    intake_max_lift_m: float
-    exhaust_max_lift_m: float
+    intake_valve_diameter_m: float = 35.95e-3
+    exhaust_valve_diameter_m: float = 31.45e-3
+    intake_max_lift_m: float = 8.5e-3
+    exhaust_max_lift_m: float = 8.5e-3
     cd_intake: float = 0.70
     cd_exhaust: float = 0.72
 
@@ -54,4 +54,3 @@ def effective_curtain_area_m2(valve_diameter_m: float, lift_m: float) -> float:
     curtain = pi * valve_diameter_m * max(0.0, lift_m)
     port = pi * (valve_diameter_m**2) / 4.0
     return min(curtain, port)
-

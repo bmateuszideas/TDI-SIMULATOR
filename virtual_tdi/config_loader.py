@@ -39,7 +39,16 @@ def create_geometry_from_config(config: dict[str, Any]) -> EngineGeometry:
 def create_manifold_configs_from_config(config: dict[str, Any]) -> dict[str, ManifoldConfig]:
     """Creates ManifoldConfig objects from a loaded YAML config dictionary."""
     try:
-        manifold_params = config["parameters"]["manifolds"]
+        params = config["parameters"]
+        manifold_params = params.get("manifolds")
+        if manifold_params is None:
+            manifold_params = (
+                params.get("masses", {})
+                .get("total_reciprocating_mass_per_cyl", {})
+                .get("manifolds")
+            )
+        if manifold_params is None:
+            raise KeyError("manifolds")
         intake_vol_l = float(manifold_params["intake_volume"]["value"])
         exhaust_vol_l = float(manifold_params["exhaust_volume"]["value"])
 
@@ -64,4 +73,3 @@ def create_valve_flow_from_config(config: dict[str, Any]) -> ValveFlow:
         )
     except (KeyError, TypeError) as e:
         raise ValueError(f"Invalid or missing key in engine config for valvetrain: {e}") from e
-

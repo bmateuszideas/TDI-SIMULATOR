@@ -169,8 +169,8 @@ class SimulationConfig:
     gamma_max: float = 1.40
     combustion: CombustionConfig = CombustionConfig()
     heat_transfer: HeatTransferConfig = HeatTransferConfig()
-    thermo_backend: Literal["simple", "coolprop"] = "coolprop"
-    flow_backend: Literal["simple", "fluids"] = "fluids"
+    thermo_backend: Literal["simple", "coolprop"] = "simple"
+    flow_backend: Literal["simple", "fluids"] = "simple"
     coolprop_fluid: str = "Air"
     strict_backends: bool = True
     integrator: Literal["rk4", "scipy"] = "scipy"

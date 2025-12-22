@@ -18,6 +18,11 @@ from .thermo import GasModel, omega_rad_per_s
 DEG2RAD = pi / 180.0
 
 
+def _mean_wall_temp_k(cfg: SimulationConfig) -> float:
+    ht = cfg.heat_transfer
+    return (ht.head_temp_k + ht.piston_temp_k + ht.liner_temp_k) / 3.0
+
+
 @dataclass(frozen=True)
 class SimulationResult:
     theta_deg: np.ndarray
@@ -87,6 +92,7 @@ def simulate_closed_cycle(
 
         dq_comb_dtheta = heat_release_rate_dq_dtheta(
             theta_r,
+            fuel=fuel,
             q_total_j=q_total_j,
             schedule=schedule,
             cfg=cfg.combustion,
@@ -102,7 +108,7 @@ def simulate_closed_cycle(
             mean_piston_speed_m_per_s=mean_piston_speed,
             cfg=cfg.heat_transfer,
         )
-        qdot_wall_w = h * geom_res.heat_transfer_area_m2 * (T - cfg.heat_transfer.wall_temp_k)
+        qdot_wall_w = h * geom_res.heat_transfer_area_m2 * (T - _mean_wall_temp_k(cfg))
         dq_wall_dtheta = qdot_wall_w / max(1e-9, omega)  # J/rad
 
         return ((g - 1.0) / V) * (dq_comb_dtheta - dq_wall_dtheta) - (g * p_pa / V) * geom_res.dvol_dtheta_m3_per_rad
@@ -145,6 +151,7 @@ def simulate_closed_cycle(
         # Store energy rates per degree for reporting (more human-friendly).
         dq_comb[i] = heat_release_rate_dq_dtheta(
             theta_rad[i],
+            fuel=fuel,
             q_total_j=q_total_j,
             schedule=schedule,
             cfg=cfg.combustion,
@@ -158,7 +165,7 @@ def simulate_closed_cycle(
             mean_piston_speed_m_per_s=mean_piston_speed,
             cfg=cfg.heat_transfer,
         )
-        qdot_wall_w = h * geom_res.heat_transfer_area_m2 * (temperature[i] - cfg.heat_transfer.wall_temp_k)
+        qdot_wall_w = h * geom_res.heat_transfer_area_m2 * (temperature[i] - _mean_wall_temp_k(cfg))
         dq_wall[i] = (qdot_wall_w / max(1e-9, omega)) * DEG2RAD
 
     # Fill volume[0] and gamma[0]
@@ -256,6 +263,7 @@ def simulate_closed_cycle_scipy(
 
         dq_comb_dtheta = heat_release_rate_dq_dtheta(
             theta_r,
+            fuel=fuel,
             q_total_j=q_total_j,
             schedule=schedule,
             cfg=cfg.combustion,
@@ -269,7 +277,7 @@ def simulate_closed_cycle_scipy(
             mean_piston_speed_m_per_s=mean_piston_speed,
             cfg=cfg.heat_transfer,
         )
-        qdot_wall_w = h * geo.heat_transfer_area_m2 * (T - cfg.heat_transfer.wall_temp_k)
+        qdot_wall_w = h * geo.heat_transfer_area_m2 * (T - _mean_wall_temp_k(cfg))
         dq_wall_dtheta = qdot_wall_w / max(1e-9, omega)
 
         dT_dtheta = (dq_comb_dtheta - dq_wall_dtheta - P * geo.dvol_dtheta_m3_per_rad) / max(1e-9, mass_kg * cv)
@@ -336,6 +344,7 @@ def simulate_closed_cycle_scipy(
         gamma[i] = gas.gamma(float(T_grid[i]), cfg, pressure_pa=P)
         dq_comb[i] = heat_release_rate_dq_dtheta(
             tr,
+            fuel=fuel,
             q_total_j=q_total_j,
             schedule=schedule,
             cfg=cfg.combustion,
@@ -348,7 +357,7 @@ def simulate_closed_cycle_scipy(
             mean_piston_speed_m_per_s=mean_piston_speed,
             cfg=cfg.heat_transfer,
         )
-        qdot_wall_w = h * geo.heat_transfer_area_m2 * (float(T_grid[i]) - cfg.heat_transfer.wall_temp_k)
+        qdot_wall_w = h * geo.heat_transfer_area_m2 * (float(T_grid[i]) - _mean_wall_temp_k(cfg))
         dq_wall[i] = (qdot_wall_w / max(1e-9, omega)) * DEG2RAD
 
     dV = np.gradient(volume, theta_rad)
