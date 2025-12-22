@@ -88,6 +88,40 @@ class TestFullCycleDynamicManifolds(unittest.TestCase):
         mean_exhaust_temp_k = result.metrics["t_exhaust_mean_k"]
         self.assertGreater(mean_exhaust_temp_k, 500.0, msg="Exhaust temp should be high")
 
+    def test_intake_egr_fraction_increases_with_overlap_backflow(self):
+        valve_timing = ValveTiming(ivo_deg=-20.0, ivc_deg=200.0, evo_deg=-200.0, evc_deg=20.0)
+        intake_config = ManifoldConfig(
+            volume_m3=self.intake_manifold_config.volume_m3,
+            initial_temp_k=300.0,
+            initial_pressure_pa=0.8e5,
+            initial_egr_fraction=0.0,
+        )
+        exhaust_config = ManifoldConfig(
+            volume_m3=self.exhaust_manifold_config.volume_m3,
+            initial_temp_k=800.0,
+            initial_pressure_pa=1.6e5,
+            initial_egr_fraction=1.0,
+        )
+        models = SimulationConfig(rpm=1200.0, integrator="rk4")
+        cfg = FullCycleConfig(
+            rpm=1200.0,
+            cycles=2,
+            step_deg=1.0,
+            intake_manifold_config=intake_config,
+            exhaust_manifold_config=exhaust_config,
+            p_ambient_pa=0.8e5,
+            t_ambient_k=300.0,
+            valve_timing=valve_timing,
+            models=models,
+        )
+
+        result = simulate_full_cycle(self.geom, self.fuel, self.schedule, cfg)
+
+        self.assertGreater(np.max(result.egr_intake_frac), intake_config.initial_egr_fraction)
+        self.assertTrue(np.all((result.egr_intake_frac >= 0.0) & (result.egr_intake_frac <= 1.0)))
+        self.assertTrue(np.all((result.egr_exhaust_frac >= 0.0) & (result.egr_exhaust_frac <= 1.0)))
+        self.assertTrue(np.all((result.egr_cylinder_frac >= 0.0) & (result.egr_cylinder_frac <= 1.0)))
+
 
 if __name__ == "__main__":
     unittest.main()

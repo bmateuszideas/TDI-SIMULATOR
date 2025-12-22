@@ -12,6 +12,10 @@ class EngineGeometry:
     rod_length_m: float
     crank_radius_m: float
     offset_m: float
+    bowl_volume_m3: float
+    head_recess_m3: float
+    gasket_thickness_m: float
+    piston_protrusion_m: float
     compression_ratio: float
     cylinders: int = 4
 
@@ -25,8 +29,16 @@ class EngineGeometry:
 
     @property
     def clearance_volume_m3_per_cyl(self) -> float:
-        # CR = (Vs + Vc) / Vc
-        return self.swept_volume_m3_per_cyl / (self.compression_ratio - 1.0)
+        return (
+            self.bowl_volume_m3
+            + self.head_recess_m3
+            + self.piston_area_m2 * (self.gasket_thickness_m - self.piston_protrusion_m)
+        )
+
+    @property
+    def compression_ratio_from_geometry(self) -> float:
+        vc = self.clearance_volume_m3_per_cyl
+        return (self.swept_volume_m3_per_cyl + vc) / vc
 
 
 @dataclass(frozen=True)
@@ -37,6 +49,7 @@ class ManifoldConfig:
     # Initial state guesses
     initial_temp_k: float = 300.0
     initial_pressure_pa: float = 1.0e5
+    initial_egr_fraction: float = 0.0
 
 
 @dataclass
@@ -45,6 +58,7 @@ class ManifoldState:
 
     mass_kg: float
     temperature_k: float
+    egr_fraction: float
 
     @classmethod
     def from_config(cls, cfg: ManifoldConfig) -> "ManifoldState":
@@ -53,7 +67,8 @@ class ManifoldState:
         # Initial mass from ideal gas law
         rho = cfg.initial_pressure_pa / (max(1e-9, R_AIR_J_PER_KG_K) * max(1.0, cfg.initial_temp_k))
         mass = rho * cfg.volume_m3
-        return cls(mass_kg=mass, temperature_k=cfg.initial_temp_k)
+        egr_fraction = max(0.0, min(1.0, cfg.initial_egr_fraction))
+        return cls(mass_kg=mass, temperature_k=cfg.initial_temp_k, egr_fraction=egr_fraction)
 
 
 @dataclass(frozen=True)
@@ -178,8 +193,11 @@ class SimulationConfig:
     scipy_rtol: float = 1.0e-7
     scipy_atol: float = 1.0e-9
     scipy_max_step_deg: float = 1.0
-    # Simple friction loss model for reporting (not fed back into cylinder dynamics).
-    fmep_pa: float = 1.0e5  # ~1 bar
+    # Friction loss model for reporting (not fed back into cylinder dynamics).
+    # FMEP_bar = A + B * (rpm / 1000) + C * Pmax_bar
+    fmep_a_bar: float = 1.0
+    fmep_b_bar_per_krpm: float = 0.0
+    fmep_c_bar_per_bar: float = 0.0
 
 
 @dataclass

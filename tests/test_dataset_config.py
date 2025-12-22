@@ -26,6 +26,10 @@ class TestDatasetConfig(unittest.TestCase):
                 },
                 "combustion_chamber": {
                     "compression_ratio": {"value": "20.0:1"},
+                    "bowl_volume": {"value": 17.0, "unit": "cm3"},
+                    "head_recess_volume": {"value": 4.4, "unit": "cm3"},
+                    "gasket_thickness": {"value": 1.5, "unit": "mm"},
+                    "piston_protrusion": {"value": 0.7, "unit": "mm"},
                     "total_cylinders": {"value": 4}
                 }
             }
