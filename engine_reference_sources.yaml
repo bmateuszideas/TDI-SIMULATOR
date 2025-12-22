@@ -51,6 +51,22 @@ parameters:
       value: "19.5:1"
       unit: "-"
       source: "VW SSP 198"
+    bowl_volume:
+      value: 17.5
+      unit: cm3
+      source: "Estymacja: tłok ALH bowl volume + dopasowanie do CR"
+    head_recess_volume:
+      value: 4.5
+      unit: cm3
+      source: "Estymacja: recess w głowicy + dopasowanie do CR"
+    gasket_thickness:
+      value: 1.53
+      unit: mm
+      source: "Typowa uszczelka 1.9 TDI (1-2 karby)"
+    piston_protrusion:
+      value: 0.8
+      unit: mm
+      source: "Zakres katalogowy ALH/AFN, estymacja do CR"
     total_cylinders:
       value: 4
       unit: "-"

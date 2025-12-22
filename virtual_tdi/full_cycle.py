@@ -20,6 +20,9 @@ from .fmep import calculate_fmep_from_config
 from .geometry import geometry_at_theta
 from .heat_transfer import h_woschni_simplified_w_per_m2_k, calculate_wall_heat_loss_j_per_rad
 from .models import EngineGeometry, Fuel, SimulationConfig, ManifoldConfig, ManifoldState
+from .geometry import geometry_at_theta
+from .heat_transfer import calculate_wall_heat_loss_j_per_rad, h_woschni_simplified_w_per_m2_k
+from .models import EngineGeometry, Fuel, SimulationConfig, ManifoldConfig, ManifoldState
 from .thermo import GasModel, omega_rad_per_s
 from .valvetrain import ValveFlow, ValveTiming, effective_curtain_area_m2, valve_lift_fraction
 from .lift_table import ValveLiftTable
@@ -85,6 +88,7 @@ class FullCycleConfig:
                     volume_m3=2e-3,
                     initial_temp_k=boundaries.intake_temp_k,
                     initial_pressure_pa=boundaries.intake_pressure_pa,
+                    initial_egr_fraction=0.0,
                 ),
             )
 
@@ -96,6 +100,7 @@ class FullCycleConfig:
                     volume_m3=1.5e-3,
                     initial_temp_k=boundaries.exhaust_temp_k,
                     initial_pressure_pa=boundaries.exhaust_pressure_pa,
+                    initial_egr_fraction=1.0,
                 ),
             )
 
@@ -122,8 +127,22 @@ class FullCycleResult:
     mdot_exhaust_kg_s: np.ndarray
     intake_lift_frac: np.ndarray
     exhaust_lift_frac: np.ndarray
+    egr_intake_frac: np.ndarray
+    egr_exhaust_frac: np.ndarray
+    egr_cylinder_frac: np.ndarray
     dq_comb_j_per_deg: np.ndarray
     dq_wall_j_per_deg: np.ndarray
+    dm_fuel_main_mg_per_deg: np.ndarray
+    torque_indicated_nm_per_cyl: np.ndarray
+    metrics: dict[str, Any]
+    mdot_exhaust_kg_s: np.ndarray
+    intake_lift_frac: np.ndarray
+    exhaust_lift_frac: np.ndarray
+    dq_comb_j_per_deg: np.ndarray
+    dq_wall_j_per_deg: np.ndarray
+    dq_head_j_per_deg: np.ndarray
+    dq_piston_j_per_deg: np.ndarray
+    dq_liner_j_per_deg: np.ndarray
     dm_fuel_main_mg_per_deg: np.ndarray
     torque_indicated_nm_per_cyl: np.ndarray
     metrics: dict[str, Any]
@@ -165,6 +184,7 @@ def simulate_full_cycle(
     )
     m0_cyl = rho0 * geom0.volume_m3
     t0_cyl = intake_state.temperature_k
+    f0_cyl = intake_state.egr_fraction
 
     cyl = cfg.cylinder
     if cyl not in (1, 2, 3, 4): raise ValueError("cfg.cylinder must be 1..4")
@@ -185,11 +205,35 @@ def simulate_full_cycle(
         )
 
     def run_one_cycle(init_state: np.ndarray):
-        results = {k: np.zeros_like(theta_rad) for k in ["pressure", "temp", "mass", "p_intake", "t_intake", "p_exhaust", "t_exhaust", "mdot_in", "mdot_ex", "lift_i", "lift_e", "dq_comb", "dq_wall", "torque", "dm_fuel_main_mg_per_deg"]}
+        results = {k: np.zeros_like(theta_rad) for k in ["pressure", "temp", "mass", "p_intake", "t_intake", "p_exhaust", "t_exhaust", "mdot_in", "mdot_ex", "lift_i", "lift_e", "dq_comb", "dq_wall", "torque", "dm_fuel_main_mg_per_deg", "f_intake", "f_exhaust", "f_cyl"]}
+        state, runtime = init_state.copy(), CombustionScheduleRuntime()
+        results = {
+            k: np.zeros_like(theta_rad)
+            for k in [
+                "pressure",
+                "temp",
+                "mass",
+                "p_intake",
+                "t_intake",
+                "p_exhaust",
+                "t_exhaust",
+                "mdot_in",
+                "mdot_ex",
+                "lift_i",
+                "lift_e",
+                "dq_comb",
+                "dq_wall",
+                "dq_head",
+                "dq_piston",
+                "dq_liner",
+                "torque",
+                "dm_fuel_main_mg_per_deg",
+            ]
+        }
         state, runtime = init_state.copy(), CombustionScheduleRuntime()
         
         for i, (theta_d, theta_r) in enumerate(zip(theta_deg, theta_rad)):
-            m_c, t_c, m_i, t_i, m_e, t_e = state
+            m_c, t_c, f_c, m_i, t_i, f_i, m_e, t_e, f_e = state
             
             geo = geometry_at_theta(geom, theta_r)
             rho_c = m_c / max(1e-12, geo.volume_m3)
@@ -198,6 +242,9 @@ def simulate_full_cycle(
             p_e = gas.pressure_from_rhoT(m_e / cfg.exhaust_manifold_config.volume_m3, t_e, cfg.models)
 
             for k, v in [("pressure",p_c), ("temp",t_c), ("mass",m_c), ("p_intake",p_i), ("t_intake",t_i), ("p_exhaust",p_e), ("t_exhaust",t_e)]: results[k][i] = v
+            results["f_intake"][i] = f_i
+            results["f_exhaust"][i] = f_e
+            results["f_cyl"][i] = f_c
             
             li_m, le_m = lift_m(theta_d, "intake"), lift_m(theta_d, "exhaust")
             results["lift_i"][i], results["lift_e"][i] = li_m / max(1e-9, cfg.valve_flow.intake_max_lift_m), le_m / max(1e-9, cfg.valve_flow.exhaust_max_lift_m)
@@ -223,7 +270,11 @@ def simulate_full_cycle(
 
             state_derivs, mdot_in, mdot_ex, dq_comb, dq_wall = _deriv_func(theta_r, state, runtime)
             results["mdot_in"][i], results["mdot_ex"][i] = mdot_in, mdot_ex
-            results["dq_comb"][i], results["dq_wall"][i] = dq_comb * DEG2RAD, dq_wall * DEG2RAD
+            results["dq_comb"][i] = dq_comb * DEG2RAD
+            results["dq_wall"][i] = dq_wall.total_j_per_rad * DEG2RAD
+            results["dq_head"][i] = dq_wall.head_j_per_rad * DEG2RAD
+            results["dq_piston"][i] = dq_wall.piston_j_per_rad * DEG2RAD
+            results["dq_liner"][i] = dq_wall.liner_j_per_rad * DEG2RAD
             results["torque"][i] = p_c * geo.dvol_dtheta_m3_per_rad
 
             if i < len(theta_rad) - 1:
@@ -233,12 +284,13 @@ def simulate_full_cycle(
                     step_rad=step_rad,
                     deriv=lambda t, s: _deriv_func(t, s, runtime)[0],
                 )
-                state[1::2] = np.clip(state[1::2], cfg.t_min_k, cfg.t_max_k) # Clip temperatures
+                state[[1, 4, 7]] = np.clip(state[[1, 4, 7]], cfg.t_min_k, cfg.t_max_k) # Clip temperatures
+                state[[2, 5, 8]] = np.clip(state[[2, 5, 8]], 0.0, 1.0)
 
         return results, state
 
     def _deriv_func(theta_r, state_vec, rt):
-        m_c, t_c, m_i, t_i, m_e, t_e = state_vec
+        m_c, t_c, f_c, m_i, t_i, f_i, m_e, t_e, f_e = state_vec
         geo = geometry_at_theta(geom, theta_r)
         
         rho_c = m_c / max(1e-12, geo.volume_m3)
@@ -334,7 +386,18 @@ def simulate_full_cycle(
             else 0.0
         )
         
-        dm_cyl_dtheta, dm_intake_dtheta, dm_exhaust_dtheta = (mdot_i_c - mdot_c_e)/omega, (mdot_amb_i - mdot_i_c)/omega, (mdot_c_e - mdot_e_amb)/omega
+        dm_cyl_dtheta = (mdot_i_c - mdot_c_e) / omega
+        dm_intake_dtheta = (mdot_amb_i - mdot_i_c) / omega
+        dm_exhaust_dtheta = (mdot_c_e - mdot_e_amb) / omega
+
+        mdot_i_to_c = max(mdot_i_c, 0.0)
+        mdot_c_to_i = max(-mdot_i_c, 0.0)
+        mdot_c_to_e = max(mdot_c_e, 0.0)
+        mdot_e_to_c = max(-mdot_c_e, 0.0)
+
+        dm_egr_cyl_dtheta = ((mdot_i_to_c * f_i + mdot_e_to_c * f_e) - (mdot_c_to_i + mdot_c_to_e) * f_c) / omega
+        dm_egr_intake_dtheta = ((mdot_c_to_i * f_c) - (mdot_i_to_c * f_i)) / omega
+        dm_egr_exhaust_dtheta = ((mdot_c_to_e * f_c) - (mdot_e_to_c * f_e) - (mdot_e_amb * f_e)) / omega
         
         dq_c = heat_release_rate_dq_dtheta(
             theta_r,
@@ -367,7 +430,13 @@ def simulate_full_cycle(
         h_c_e_flow = cp_c*t_c if mdot_c_e > 0 else cp_e*t_e
         dH_flow = (mdot_i_c * h_i_c_flow - mdot_c_e * h_c_e_flow) / omega
         
-        dT_cyl_dtheta = (dq_c - dq_w - p_c*geo.dvol_dtheta_m3_per_rad + dH_flow - cv_c*t_c*dm_cyl_dtheta) / max(cfg.m_min_kg*cv_c, m_c*cv_c)
+        dT_cyl_dtheta = (
+            dq_c
+            - dq_w.total_j_per_rad
+            - p_c * geo.dvol_dtheta_m3_per_rad
+            + dH_flow
+            - cv_c * t_c * dm_cyl_dtheta
+        ) / max(cfg.m_min_kg * cv_c, m_c * cv_c)
         
         h_amb_i = cp_amb * cfg.t_ambient_k
         h_i_c = cp_i * t_i
@@ -376,20 +445,39 @@ def simulate_full_cycle(
         h_c_e = cp_c * t_c
         h_e_amb = cp_e * t_e
         dT_exhaust_dtheta = ((mdot_c_e*h_c_e - mdot_e_amb*h_e_amb)/omega - cv_e*t_e*dm_exhaust_dtheta) / max(cfg.m_min_kg*cv_e, m_e*cv_e)
+
+        df_cyl_dtheta = (dm_egr_cyl_dtheta - f_c * dm_cyl_dtheta) / max(cfg.m_min_kg, m_c)
+        df_intake_dtheta = (dm_egr_intake_dtheta - f_i * dm_intake_dtheta) / max(cfg.m_min_kg, m_i)
+        df_exhaust_dtheta = (dm_egr_exhaust_dtheta - f_e * dm_exhaust_dtheta) / max(cfg.m_min_kg, m_e)
         
         state_derivs = np.array(
             [
                 dm_cyl_dtheta,
                 dT_cyl_dtheta,
+                df_cyl_dtheta,
                 dm_intake_dtheta,
                 dT_intake_dtheta,
+                df_intake_dtheta,
                 dm_exhaust_dtheta,
                 dT_exhaust_dtheta,
+                df_exhaust_dtheta,
             ]
         )
         return state_derivs, mdot_i_c, -mdot_c_e, dq_c, dq_w
 
-    state = np.array([m0_cyl, t0_cyl, intake_state.mass_kg, intake_state.temperature_k, exhaust_state.mass_kg, exhaust_state.temperature_k])
+    state = np.array(
+        [
+            m0_cyl,
+            t0_cyl,
+            f0_cyl,
+            intake_state.mass_kg,
+            intake_state.temperature_k,
+            intake_state.egr_fraction,
+            exhaust_state.mass_kg,
+            exhaust_state.temperature_k,
+            exhaust_state.egr_fraction,
+        ]
+    )
     
     for _ in range(max(1, cfg.cycles)):
         results, state = run_one_cycle(state)
@@ -439,8 +527,20 @@ def simulate_full_cycle(
         mdot_exhaust_kg_s=results["mdot_ex"],
         intake_lift_frac=results["lift_i"],
         exhaust_lift_frac=results["lift_e"],
+        egr_intake_frac=results["f_intake"],
+        egr_exhaust_frac=results["f_exhaust"],
+        egr_cylinder_frac=results["f_cyl"],
         dq_comb_j_per_deg=results["dq_comb"],
         dq_wall_j_per_deg=results["dq_wall"],
+        mdot_intake_kg_s=results["mdot_in"],
+        mdot_exhaust_kg_s=results["mdot_ex"],
+        intake_lift_frac=results["lift_i"],
+        exhaust_lift_frac=results["lift_e"],
+        dq_comb_j_per_deg=results["dq_comb"],
+        dq_wall_j_per_deg=results["dq_wall"],
+        dq_head_j_per_deg=results["dq_head"],
+        dq_piston_j_per_deg=results["dq_piston"],
+        dq_liner_j_per_deg=results["dq_liner"],
         dm_fuel_main_mg_per_deg=results["dm_fuel_main_mg_per_deg"],
         torque_indicated_nm_per_cyl=results["torque"],
         metrics=metrics,
