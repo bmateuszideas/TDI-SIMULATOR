@@ -37,6 +37,7 @@ class ManifoldConfig:
     # Initial state guesses
     initial_temp_k: float = 300.0
     initial_pressure_pa: float = 1.0e5
+    initial_egr_fraction: float = 0.0
 
 
 @dataclass
@@ -45,6 +46,7 @@ class ManifoldState:
 
     mass_kg: float
     temperature_k: float
+    egr_fraction: float
 
     @classmethod
     def from_config(cls, cfg: ManifoldConfig) -> "ManifoldState":
@@ -53,7 +55,8 @@ class ManifoldState:
         # Initial mass from ideal gas law
         rho = cfg.initial_pressure_pa / (max(1e-9, R_AIR_J_PER_KG_K) * max(1.0, cfg.initial_temp_k))
         mass = rho * cfg.volume_m3
-        return cls(mass_kg=mass, temperature_k=cfg.initial_temp_k)
+        egr_fraction = max(0.0, min(1.0, cfg.initial_egr_fraction))
+        return cls(mass_kg=mass, temperature_k=cfg.initial_temp_k, egr_fraction=egr_fraction)
 
 
 @dataclass(frozen=True)
