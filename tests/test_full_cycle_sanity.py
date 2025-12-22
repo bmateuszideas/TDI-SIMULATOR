@@ -54,9 +54,9 @@ class TestFullCycleSanity(unittest.TestCase):
             models=models,
         )
         result = simulate_full_cycle(geom, fuel, schedule, cfg)
-        self.assertIn("imep_bar", result.metrics)
-        self.assertGreater(result.metrics["peak_pressure_bar"], 1.0)
-        self.assertGreater(result.metrics["imep_bar"], 0.1)
+        self.assertIn("imep_pa", result.metrics)
+        self.assertGreater(result.metrics["peak_pressure_pa"], 1.0e5)
+        self.assertGreater(result.metrics["imep_pa"], 1.0e4)
 
 
 if __name__ == "__main__":

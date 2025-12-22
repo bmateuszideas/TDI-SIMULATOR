@@ -50,7 +50,7 @@ class TestFullCycleVP37HRR(unittest.TestCase):
             vp37_cam_profile=cam,
         )
         res = simulate_full_cycle(geom, fuel, schedule, cfg)
-        self.assertGreater(res.metrics["peak_pressure_bar"], 1.0)
+        self.assertGreater(res.metrics["peak_pressure_pa"], 1.0e5)
         self.assertTrue(hasattr(res, "dm_fuel_main_mg_per_deg"))
 
 

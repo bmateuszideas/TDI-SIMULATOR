@@ -69,16 +69,16 @@ class TestFullCycleDynamicManifolds(unittest.TestCase):
             self.assertFalse(np.any(np.isinf(arr)), f"{arr_name} contains Inf values")
 
         # Basic plausibility checks
-        self.assertGreater(result.metrics["peak_pressure_bar"], 30.0)
+        self.assertGreater(result.metrics["peak_pressure_pa"], 3.0e6)
         self.assertGreater(result.metrics["m_air_in_kg_per_cyl"], 1e-4)
 
         # Mean intake pressure should be around ambient pressure
-        mean_intake_bar = result.metrics["p_intake_mean_bar"]
-        self.assertAlmostEqual(mean_intake_bar, 1.0, delta=0.1, msg="Intake pressure should settle near ambient")
+        mean_intake_pa = result.metrics["p_intake_mean_pa"]
+        self.assertAlmostEqual(mean_intake_pa, 1.0e5, delta=1.0e4, msg="Intake pressure should settle near ambient")
 
         # Mean exhaust pressure should be slightly above ambient
-        mean_exhaust_bar = result.metrics["p_exhaust_mean_bar"]
-        self.assertGreater(mean_exhaust_bar, 1.0, msg="Exhaust pressure should be above ambient")
+        mean_exhaust_pa = result.metrics["p_exhaust_mean_pa"]
+        self.assertGreater(mean_exhaust_pa, 1.0e5, msg="Exhaust pressure should be above ambient")
 
         # Mean intake temperature should be close to ambient
         mean_intake_temp_k = result.metrics["t_intake_mean_k"]
