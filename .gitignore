@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.venv/
+.venv*/
+venv/
+.env
+
+# Testing / coverage
+.coverage
+.coverage.*
+.pytest_cache/
+.tox/
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+
+# Outputs / data artifacts
+out/
+out_*/
+*.png
+*.csv
+*.log
+
+# IDE / editor
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db

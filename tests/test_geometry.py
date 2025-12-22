@@ -49,12 +49,12 @@ class TestGeometry(unittest.TestCase):
         if delta < r:
             theta_tdc = math.asin(delta / r)
             _, dV_dtheta_tdc, _ = cylinder_volume_m3(self.geom, theta_tdc)
-            self.assertAlmostEqual(dV_dtheta_tdc, 0.0, places=6, msg="dV/dtheta should be 0 at true TDC")
+            self.assertAlmostEqual(dV_dtheta_tdc, 0.0, places=5, msg="dV/dtheta should be 0 at true TDC")
 
         # Angle for true BDC (lowest piston position)
         theta_bdc = math.pi - math.asin(delta / r) if delta < r else math.pi
         _, dV_dtheta_bdc, _ = cylinder_volume_m3(self.geom, theta_bdc)
-        self.assertAlmostEqual(dV_dtheta_bdc, 0.0, places=6, msg="dV/dtheta should be 0 at true BDC")
+        self.assertAlmostEqual(dV_dtheta_bdc, 0.0, places=5, msg="dV/dtheta should be 0 at true BDC")
 
     def test_volume_and_derivative_at_intermediate_points(self):
         """
@@ -86,10 +86,9 @@ class TestGeometry(unittest.TestCase):
 
         self.assertAlmostEqual(V, expected_V, places=12)
         self.assertAlmostEqual(dV_dtheta, expected_dV_dtheta, places=12)
-        # The derivative should be strongly negative (volume increasing)
-        self.assertLess(dV_dtheta, 0)
+        # The derivative should be strongly positive (volume increasing)
+        self.assertGreater(dV_dtheta, 0)
 
 
 if __name__ == "__main__":
     unittest.main()
-

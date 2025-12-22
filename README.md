@@ -26,9 +26,23 @@ Mapy ECU w repo są **referencją/warstwą sterownika**, a nie “silnikiem” s
 
 Jeśli chcesz generować dane stricte “z fizyki” (do ML/DL), uruchamiaj dataset bez map (`python -m virtual_tdi dataset ...` domyślnie nie używa map) albo w symulacji ustaw `--ecu off` i steruj wejściami jawnie.
 
-## Szybki start
+## Quickstart
 
 1) Zainstaluj zależności z `requirements.txt` w swoim środowisku.
+
+```
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+2) Sprawdź CLI:
+
+```
+python -m virtual_tdi --help
+```
+
+## Run
 
 GUI (prosty panel do uruchamiania symulacji):
 
@@ -99,9 +113,13 @@ Wyniki:
 - Opcjonalne backendy fizyki: `--thermo-backend coolprop`, `--flow-backend fluids`.
 - Opoznienie zaplonu: `--ignition-delay arrhenius|fixed_deg` (dla `fixed_deg` ustaw `--ignition-delay-deg`).
 
-## Testy
+## Tests
 
-`python -m unittest discover -s tests -p "test_*.py"`
+`python -m unittest discover -s tests -p "test_*.py" -v`
+
+## CI
+
+CI działa na GitHub Actions (Python 3.12) i uruchamia testy z katalogu `tests`.
 
 ## Co dalej (kolejne etapy)
 

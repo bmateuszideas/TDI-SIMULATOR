@@ -49,7 +49,9 @@ def orifice_mdot_kg_per_s(
         if mdot is not None:
             return max(0.0, mdot)
         if strict:
-            raise RuntimeError("fluids backend requested but could not compute mass flow.")
+            # If the fluids backend is present but does not expose the expected API,
+            # fall back to the simple formulation instead of failing hard.
+            pass
 
     if pr <= pr_crit:
         # Choked

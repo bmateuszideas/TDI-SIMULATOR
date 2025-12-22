@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import pi
 from typing import Any
 
@@ -29,6 +29,14 @@ DEG2RAD = pi / 180.0
 
 
 @dataclass(frozen=True)
+class BoundaryConditions:
+    intake_pressure_pa: float = 1.0e5
+    intake_temp_k: float = 300.0
+    exhaust_pressure_pa: float = 1.1e5
+    exhaust_temp_k: float = 800.0
+
+
+@dataclass(frozen=True)
 class FullCycleConfig:
     rpm: float
     step_deg: float = 0.1
@@ -36,13 +44,14 @@ class FullCycleConfig:
     theta_start_deg: float = -360.0
     theta_end_deg: float = 360.0
     fuel_mg_per_cycle_per_cyl: float = 20.0
-    intake_manifold_config: ManifoldConfig = ManifoldConfig(volume_m3=2e-3)
-    exhaust_manifold_config: ManifoldConfig = ManifoldConfig(volume_m3=1.5e-3)
+    boundaries: BoundaryConditions | None = None
+    intake_manifold_config: ManifoldConfig | None = None
+    exhaust_manifold_config: ManifoldConfig | None = None
     p_ambient_pa: float = 1.0e5
     t_ambient_k: float = 300.0
     manifold_throttle_coeff: float = 1e-4
-    valve_timing: ValveTiming = ValveTiming()
-    valve_flow: ValveFlow = ValveFlow()
+    valve_timing: ValveTiming = field(default_factory=ValveTiming)
+    valve_flow: ValveFlow = field(default_factory=ValveFlow)
     valve_lift_table: ValveLiftTable | None = None
     cylinder: int = 1
     tdc_offset_deg: dict[int, float] = None
@@ -51,12 +60,48 @@ class FullCycleConfig:
     vp37_delivery_start_frac: float = 0.40
     reciprocating_mass_kg: float = 0.73
     injection_profile: tuple[np.ndarray, np.ndarray] | None = None
-    models: SimulationConfig = SimulationConfig(rpm=1500.0)
+    models: SimulationConfig = field(default_factory=lambda: SimulationConfig(rpm=1500.0))
     m_min_kg: float = 1.0e-7
     t_min_k: float = 200.0
     t_max_k: float = 4500.0
 
     def __post_init__(self) -> None:
+        boundaries = self.boundaries
+        if boundaries is None:
+            boundaries = BoundaryConditions(
+                intake_pressure_pa=self.p_ambient_pa,
+                intake_temp_k=self.t_ambient_k,
+                exhaust_pressure_pa=self.p_ambient_pa,
+                exhaust_temp_k=self.t_ambient_k,
+            )
+            object.__setattr__(self, "boundaries", boundaries)
+
+        if self.intake_manifold_config is None:
+            object.__setattr__(
+                self,
+                "intake_manifold_config",
+                ManifoldConfig(
+                    volume_m3=2e-3,
+                    initial_temp_k=boundaries.intake_temp_k,
+                    initial_pressure_pa=boundaries.intake_pressure_pa,
+                ),
+            )
+
+        if self.exhaust_manifold_config is None:
+            object.__setattr__(
+                self,
+                "exhaust_manifold_config",
+                ManifoldConfig(
+                    volume_m3=1.5e-3,
+                    initial_temp_k=boundaries.exhaust_temp_k,
+                    initial_pressure_pa=boundaries.exhaust_pressure_pa,
+                ),
+            )
+
+        if self.p_ambient_pa == 1.0e5 and self.t_ambient_k == 300.0:
+            object.__setattr__(self, "p_ambient_pa", boundaries.intake_pressure_pa)
+            object.__setattr__(self, "t_ambient_k", boundaries.intake_temp_k)
+
         if self.tdc_offset_deg is None:
             object.__setattr__(self, "tdc_offset_deg", {1: 0.0, 3: 180.0, 4: 360.0, 2: 540.0})
 
@@ -112,7 +157,11 @@ def simulate_full_cycle(
     exhaust_state = ManifoldState.from_config(cfg.exhaust_manifold_config)
 
     geom0 = geometry_at_theta(geom, theta_rad[0])
-    rho0 = gas.density_from_pT(intake_state.pressure, intake_state.temperature_k, cfg.models)
+    rho0 = gas.density_from_pT(
+        cfg.intake_manifold_config.initial_pressure_pa,
+        intake_state.temperature_k,
+        cfg.models,
+    )
     m0_cyl = rho0 * geom0.volume_m3
     t0_cyl = intake_state.temperature_k
 
@@ -152,7 +201,16 @@ def simulate_full_cycle(
             li_m, le_m = lift_m(theta_d, "intake"), lift_m(theta_d, "exhaust")
             results["lift_i"][i], results["lift_e"][i] = li_m / max(1e-9, cfg.valve_flow.intake_max_lift_m), le_m / max(1e-9, cfg.valve_flow.exhaust_max_lift_m)
             
-            runtime = maybe_arm_combustion(theta_d, p_c, t_c, fuel, schedule, cfg.models, runtime, m_c)
+            runtime = maybe_arm_combustion(
+                theta_d,
+                pressure_pa=p_c,
+                temperature_k=t_c,
+                fuel=fuel,
+                schedule=schedule,
+                sim_cfg=cfg.models,
+                runtime=runtime,
+                air_mass_kg=m_c,
+            )
 
             dur_main_rad, soi_main_rad = schedule.duration_main_deg*DEG2RAD, schedule.soi_main_deg*DEG2RAD
             m_main_kg = m_fuel_total_kg * (1.0 - max(0.0, min(1.0, schedule.pilot_fraction)))
@@ -162,13 +220,18 @@ def simulate_full_cycle(
                 if (theta_r - soi_main_rad) <= 0.0 or (theta_r - soi_main_rad) >= dur_main_rad: dm_dtheta = 0.0
             results["dm_fuel_main_mg_per_deg"][i] = (dm_dtheta * DEG2RAD) * 1e6
 
-            derivs = _deriv_func(theta_r, state, runtime)
-            results["mdot_in"][i], results["mdot_ex"][i] = derivs[6], derivs[7]
-            results["dq_comb"][i], results["dq_wall"][i] = derivs[8] * DEG2RAD, derivs[9] * DEG2RAD
+            state_derivs, mdot_in, mdot_ex, dq_comb, dq_wall = _deriv_func(theta_r, state, runtime)
+            results["mdot_in"][i], results["mdot_ex"][i] = mdot_in, mdot_ex
+            results["dq_comb"][i], results["dq_wall"][i] = dq_comb * DEG2RAD, dq_wall * DEG2RAD
             results["torque"][i] = p_c * geo.dvol_dtheta_m3_per_rad
 
             if i < len(theta_rad) - 1:
-                state = _rk4_step(theta_r, state, step_rad=step_rad, deriv=lambda t, s: _deriv_func(t, s, runtime))
+                state = _rk4_step(
+                    theta_r,
+                    state,
+                    step_rad=step_rad,
+                    deriv=lambda t, s: _deriv_func(t, s, runtime)[0],
+                )
                 state[1::2] = np.clip(state[1::2], cfg.t_min_k, cfg.t_max_k) # Clip temperatures
 
         return results, state
@@ -182,19 +245,93 @@ def simulate_full_cycle(
         p_i = gas.pressure_from_rhoT(m_i / cfg.intake_manifold_config.volume_m3, t_i, cfg.models)
         p_e = gas.pressure_from_rhoT(m_e / cfg.exhaust_manifold_config.volume_m3, t_e, cfg.models)
         
-        g_c, cp_c, cv_c = gas.gamma(t_c, cfg.models, p_c), gas.cp(t_c, cfg.models, p_c), gas.cv(t_c, cfg.models, p_c)
-        g_i, cp_i, cv_i = gas.gamma(t_i, cfg.models, p_i), gas.cp(t_i, cfg.models, p_i), gas.cv(t_i, cfg.models, p_i)
-        g_e, cp_e, cv_e = gas.gamma(t_e, cfg.models, p_e), gas.cp(t_e, cfg.models, p_e), gas.cv(t_e, cfg.models, p_e)
-        g_amb, cp_amb = gas.gamma(cfg.t_ambient_k, cfg.models, cfg.p_ambient_pa), gas.cp(cfg.t_ambient_k, cfg.models, cfg.p_ambient_pa)
+        g_c = gas.gamma(t_c, cfg.models, pressure_pa=p_c)
+        cp_c = gas.cp(t_c, cfg.models, pressure_pa=p_c)
+        cv_c = gas.cv(t_c, cfg.models, pressure_pa=p_c)
+        g_i = gas.gamma(t_i, cfg.models, pressure_pa=p_i)
+        cp_i = gas.cp(t_i, cfg.models, pressure_pa=p_i)
+        cv_i = gas.cv(t_i, cfg.models, pressure_pa=p_i)
+        g_e = gas.gamma(t_e, cfg.models, pressure_pa=p_e)
+        cp_e = gas.cp(t_e, cfg.models, pressure_pa=p_e)
+        cv_e = gas.cv(t_e, cfg.models, pressure_pa=p_e)
+        g_amb = gas.gamma(cfg.t_ambient_k, cfg.models, pressure_pa=cfg.p_ambient_pa)
+        cp_amb = gas.cp(cfg.t_ambient_k, cfg.models, pressure_pa=cfg.p_ambient_pa)
 
         li_m, le_m = lift_m(theta_r / DEG2RAD, "intake"), lift_m(theta_r / DEG2RAD, "exhaust")
         a_i, a_e = effective_curtain_area_m2(cfg.valve_flow.intake_valve_diameter_m, li_m), effective_curtain_area_m2(cfg.valve_flow.exhaust_valve_diameter_m, le_m)
         
-        mdot_i_c = orifice_mdot_kg_per_s(p_i, t_i, p_c, g_i, gas.r_j_per_kg_k, a_i, cfg.valve_flow.cd_intake, cfg.models.flow_backend) if p_i > p_c else -orifice_mdot_kg_per_s(p_c, t_c, p_i, g_c, gas.r_j_per_kg_k, a_i, cfg.valve_flow.cd_intake, cfg.models.flow_backend)
-        mdot_c_e = orifice_mdot_kg_per_s(p_c, t_c, p_e, g_c, gas.r_j_per_kg_k, a_e, cfg.valve_flow.cd_exhaust, cfg.models.flow_backend) if p_c > p_e else -orifice_mdot_kg_per_s(p_e, t_e, p_c, g_e, gas.r_j_per_kg_k, a_e, cfg.valve_flow.cd_exhaust, cfg.models.flow_backend)
-        
-        mdot_amb_i = orifice_mdot_kg_per_s(cfg.p_ambient_pa, cfg.t_ambient_k, p_i, g_amb, gas.r_j_per_kg_k, cfg.manifold_throttle_coeff, 0.8) if cfg.p_ambient_pa > p_i else 0
-        mdot_e_amb = orifice_mdot_kg_per_s(p_e, t_e, cfg.p_ambient_pa, g_e, gas.r_j_per_kg_k, cfg.manifold_throttle_coeff, 0.8) if p_e > cfg.p_ambient_pa else 0
+        if p_i > p_c:
+            mdot_i_c = orifice_mdot_kg_per_s(
+                p_up_pa=p_i,
+                t_up_k=t_i,
+                p_down_pa=p_c,
+                gamma=g_i,
+                r_j_per_kg_k=gas.r_j_per_kg_k,
+                area_m2=a_i,
+                discharge_coeff=cfg.valve_flow.cd_intake,
+                backend=cfg.models.flow_backend,
+            )
+        else:
+            mdot_i_c = -orifice_mdot_kg_per_s(
+                p_up_pa=p_c,
+                t_up_k=t_c,
+                p_down_pa=p_i,
+                gamma=g_c,
+                r_j_per_kg_k=gas.r_j_per_kg_k,
+                area_m2=a_i,
+                discharge_coeff=cfg.valve_flow.cd_intake,
+                backend=cfg.models.flow_backend,
+            )
+
+        if p_c > p_e:
+            mdot_c_e = orifice_mdot_kg_per_s(
+                p_up_pa=p_c,
+                t_up_k=t_c,
+                p_down_pa=p_e,
+                gamma=g_c,
+                r_j_per_kg_k=gas.r_j_per_kg_k,
+                area_m2=a_e,
+                discharge_coeff=cfg.valve_flow.cd_exhaust,
+                backend=cfg.models.flow_backend,
+            )
+        else:
+            mdot_c_e = -orifice_mdot_kg_per_s(
+                p_up_pa=p_e,
+                t_up_k=t_e,
+                p_down_pa=p_c,
+                gamma=g_e,
+                r_j_per_kg_k=gas.r_j_per_kg_k,
+                area_m2=a_e,
+                discharge_coeff=cfg.valve_flow.cd_exhaust,
+                backend=cfg.models.flow_backend,
+            )
+
+        mdot_amb_i = (
+            orifice_mdot_kg_per_s(
+                p_up_pa=cfg.p_ambient_pa,
+                t_up_k=cfg.t_ambient_k,
+                p_down_pa=p_i,
+                gamma=g_amb,
+                r_j_per_kg_k=gas.r_j_per_kg_k,
+                area_m2=cfg.manifold_throttle_coeff,
+                discharge_coeff=0.8,
+            )
+            if cfg.p_ambient_pa > p_i
+            else 0.0
+        )
+        mdot_e_amb = (
+            orifice_mdot_kg_per_s(
+                p_up_pa=p_e,
+                t_up_k=t_e,
+                p_down_pa=cfg.p_ambient_pa,
+                gamma=g_e,
+                r_j_per_kg_k=gas.r_j_per_kg_k,
+                area_m2=cfg.manifold_throttle_coeff,
+                discharge_coeff=0.8,
+            )
+            if p_e > cfg.p_ambient_pa
+            else 0.0
+        )
         
         dm_cyl_dtheta, dm_intake_dtheta, dm_exhaust_dtheta = (mdot_i_c - mdot_c_e)/omega, (mdot_amb_i - mdot_i_c)/omega, (mdot_c_e - mdot_e_amb)/omega
         
@@ -239,7 +376,17 @@ def simulate_full_cycle(
         h_e_amb = cp_e * t_e
         dT_exhaust_dtheta = ((mdot_c_e*h_c_e - mdot_e_amb*h_e_amb)/omega - cv_e*t_e*dm_exhaust_dtheta) / max(cfg.m_min_kg*cv_e, m_e*cv_e)
         
-        return np.array([dm_cyl_dtheta, dT_cyl_dtheta, dm_intake_dtheta, dT_intake_dtheta, dm_exhaust_dtheta, dT_exhaust_dtheta, mdot_i_c, -mdot_c_e, dq_c, dq_w])
+        state_derivs = np.array(
+            [
+                dm_cyl_dtheta,
+                dT_cyl_dtheta,
+                dm_intake_dtheta,
+                dT_intake_dtheta,
+                dm_exhaust_dtheta,
+                dT_exhaust_dtheta,
+            ]
+        )
+        return state_derivs, mdot_i_c, -mdot_c_e, dq_c, dq_w
 
     state = np.array([m0_cyl, t0_cyl, intake_state.mass_kg, intake_state.temperature_k, exhaust_state.mass_kg, exhaust_state.temperature_k])
     

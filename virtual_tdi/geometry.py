@@ -17,6 +17,7 @@ class GeometryResult:
     area_head_m2: float
     area_piston_m2: float
     area_liner_m2: float
+    heat_transfer_area_m2: float
 
 
 def piston_position_s_m(geom: EngineGeometry, theta_rad: float) -> float:
@@ -67,6 +68,7 @@ def geometry_at_theta(geom: EngineGeometry, theta_rad: float) -> GeometryResult:
     ds_dtheta = piston_position_derivative_ds_dtheta(geom, theta_rad)
     V, dV_dtheta, x_from_tdc = cylinder_volume_m3(geom, theta_rad)
     a_head, a_piston, a_liner = get_surface_areas(geom, x_from_tdc)
+    heat_transfer_area = a_head + a_piston + a_liner
     return GeometryResult(
         theta_rad=theta_rad,
         s_m=s,
@@ -76,5 +78,5 @@ def geometry_at_theta(geom: EngineGeometry, theta_rad: float) -> GeometryResult:
         area_head_m2=a_head,
         area_piston_m2=a_piston,
         area_liner_m2=a_liner,
+        heat_transfer_area_m2=heat_transfer_area,
     )
-
