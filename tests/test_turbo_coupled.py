@@ -1,8 +1,8 @@
 import unittest
 
-from virtual_tdi.coupled import simulate_coupled_turbo
-from virtual_tdi.full_cycle import BoundaryConditions, FullCycleConfig
-from virtual_tdi.models import CombustionConfig, EngineGeometry, Fuel, InjectionSchedule, SimulationConfig
+from virtual_tdi.turbo import simulate_coupled_turbo
+from virtual_tdi.engine_model import BoundaryConditions, FullCycleConfig
+from virtual_tdi.engine_model import CombustionConfig, EngineGeometry, Fuel, InjectionSchedule, SimulationConfig
 from virtual_tdi.turbo import TurboConfig
 
 
@@ -14,10 +14,6 @@ class TestTurboCoupled(unittest.TestCase):
             rod_length_m=144e-3,
             crank_radius_m=95.5e-3 / 2.0,
             offset_m=0.5e-3,
-            bowl_volume_m3=17.5e-6,
-            head_recess_m3=4.5e-6,
-            gasket_thickness_m=1.53e-3,
-            piston_protrusion_m=0.8e-3,
             compression_ratio=19.5,
             cylinders=4,
         )
@@ -47,7 +43,7 @@ class TestTurboCoupled(unittest.TestCase):
         )
         turbo_cfg = TurboConfig(p_amb_pa=1.0e5, t_amb_k=300.0, pr_max=2.0)
         res = simulate_coupled_turbo(geom, fuel, schedule, cfg, turbo_cfg, iterations=2)
-        self.assertGreater(res.result.metrics["peak_pressure_pa"], 1.0e5)
+        self.assertGreater(res.result.metrics["peak_pressure_bar"], 1.0)
         self.assertTrue(len(res.history) >= 1)
 
 

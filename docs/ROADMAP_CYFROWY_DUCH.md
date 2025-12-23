@@ -24,7 +24,7 @@ Pelna kinetyka chemiczna (full-chem) nie jest wymagana na tym etapie.
   - `Mapa_BOOST*.csv`
 - Profil rozrzadu: `profil_krzywek*.md`
 - Profil VP37: `skok_tloczka_vp37_de110.csv`
-- Dodatkowe zrodla: `specs_with_sources.md`
+- Dodatkowe zrodla (scalone): `DANE_TECHNICZNO_FIZYCZNE.md` (archiwum: `SMIETNIK/specs_with_sources.md`)
 
 ## 2) Priorytety (bez full-chem)
 1. Twarde dane i zrodla:

@@ -1,8 +1,8 @@
 import unittest
 
-from virtual_tdi.full_cycle import BoundaryConditions, FullCycleConfig, simulate_full_cycle
-from virtual_tdi.models import CombustionConfig, EngineGeometry, Fuel, InjectionSchedule, SimulationConfig
-from virtual_tdi.vp37_cam import VP37CamProfile
+from virtual_tdi.engine_model import BoundaryConditions, FullCycleConfig, simulate_full_cycle
+from virtual_tdi.engine_model import CombustionConfig, EngineGeometry, Fuel, InjectionSchedule, SimulationConfig
+from virtual_tdi.injection import VP37CamProfile
 
 
 class TestFullCycleVP37HRR(unittest.TestCase):
@@ -15,10 +15,6 @@ class TestFullCycleVP37HRR(unittest.TestCase):
             rod_length_m=144e-3,
             crank_radius_m=stroke / 2.0,
             offset_m=0.5e-3,
-            bowl_volume_m3=17.5e-6,
-            head_recess_m3=4.5e-6,
-            gasket_thickness_m=1.53e-3,
-            piston_protrusion_m=0.8e-3,
             compression_ratio=19.5,
             cylinders=4,
         )
@@ -50,7 +46,7 @@ class TestFullCycleVP37HRR(unittest.TestCase):
             vp37_cam_profile=cam,
         )
         res = simulate_full_cycle(geom, fuel, schedule, cfg)
-        self.assertGreater(res.metrics["peak_pressure_pa"], 1.0e5)
+        self.assertGreater(res.metrics["peak_pressure_bar"], 1.0)
         self.assertTrue(hasattr(res, "dm_fuel_main_mg_per_deg"))
 
 

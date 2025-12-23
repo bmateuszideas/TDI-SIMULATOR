@@ -1,6 +1,6 @@
 import unittest
 
-from virtual_tdi.soi_map import SOIMap2D
+from virtual_tdi.injection import SOIMap2D
 
 
 class TestSOIMap(unittest.TestCase):

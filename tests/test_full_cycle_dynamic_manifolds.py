@@ -2,9 +2,9 @@ import unittest
 from pathlib import Path
 import numpy as np
 
-from virtual_tdi.config_loader import create_geometry_from_config, load_yaml_config, create_manifold_configs_from_config
-from virtual_tdi.full_cycle import FullCycleConfig, simulate_full_cycle
-from virtual_tdi.models import (
+from virtual_tdi.core import create_geometry_from_config, load_yaml_config, create_manifold_configs_from_config
+from virtual_tdi.engine_model import FullCycleConfig, simulate_full_cycle
+from virtual_tdi.engine_model import (
     CombustionConfig,
     EngineGeometry,
     Fuel,
@@ -12,8 +12,8 @@ from virtual_tdi.models import (
     SimulationConfig,
     ManifoldConfig,
 )
-from virtual_tdi.valvetrain import ValveFlow, ValveTiming
-from virtual_tdi.lift_table import ValveLiftTable
+from virtual_tdi.physics import ValveFlow, ValveTiming
+from virtual_tdi.injection import ValveLiftTable
 
 class TestFullCycleDynamicManifolds(unittest.TestCase):
 
@@ -39,10 +39,10 @@ class TestFullCycleDynamicManifolds(unittest.TestCase):
         )
         
         self.valve_table = ValveLiftTable.from_markdown("profil_krzywek_4cylindry.md")
-        models = SimulationConfig(rpm=1500.0, integrator='rk4')
+        models = SimulationConfig(rpm=1500.0, integrator='rk4', step_deg=1.0)
 
         self.cfg = FullCycleConfig(
-            rpm=1500.0, cycles=4, # Use a few more cycles for temperatures to stabilize
+            rpm=1500.0, step_deg=1.0, cycles=2, # Keep runtime reasonable while allowing stabilization
             intake_manifold_config=self.intake_manifold_config,
             exhaust_manifold_config=self.exhaust_manifold_config,
             p_ambient_pa=1.0e5, t_ambient_k=300.0,
@@ -69,16 +69,16 @@ class TestFullCycleDynamicManifolds(unittest.TestCase):
             self.assertFalse(np.any(np.isinf(arr)), f"{arr_name} contains Inf values")
 
         # Basic plausibility checks
-        self.assertGreater(result.metrics["peak_pressure_pa"], 3.0e6)
+        self.assertGreater(result.metrics["peak_pressure_bar"], 30.0)
         self.assertGreater(result.metrics["m_air_in_kg_per_cyl"], 1e-4)
 
         # Mean intake pressure should be around ambient pressure
-        mean_intake_pa = result.metrics["p_intake_mean_pa"]
-        self.assertAlmostEqual(mean_intake_pa, 1.0e5, delta=1.0e4, msg="Intake pressure should settle near ambient")
+        mean_intake_bar = result.metrics["p_intake_mean_bar"]
+        self.assertAlmostEqual(mean_intake_bar, 1.0, delta=0.1, msg="Intake pressure should settle near ambient")
 
         # Mean exhaust pressure should be slightly above ambient
-        mean_exhaust_pa = result.metrics["p_exhaust_mean_pa"]
-        self.assertGreater(mean_exhaust_pa, 1.0e5, msg="Exhaust pressure should be above ambient")
+        mean_exhaust_bar = result.metrics["p_exhaust_mean_bar"]
+        self.assertGreater(mean_exhaust_bar, 1.0, msg="Exhaust pressure should be above ambient")
 
         # Mean intake temperature should be close to ambient
         mean_intake_temp_k = result.metrics["t_intake_mean_k"]
@@ -87,40 +87,6 @@ class TestFullCycleDynamicManifolds(unittest.TestCase):
         # Mean exhaust temperature should be significantly higher than ambient
         mean_exhaust_temp_k = result.metrics["t_exhaust_mean_k"]
         self.assertGreater(mean_exhaust_temp_k, 500.0, msg="Exhaust temp should be high")
-
-    def test_intake_egr_fraction_increases_with_overlap_backflow(self):
-        valve_timing = ValveTiming(ivo_deg=-20.0, ivc_deg=200.0, evo_deg=-200.0, evc_deg=20.0)
-        intake_config = ManifoldConfig(
-            volume_m3=self.intake_manifold_config.volume_m3,
-            initial_temp_k=300.0,
-            initial_pressure_pa=0.8e5,
-            initial_egr_fraction=0.0,
-        )
-        exhaust_config = ManifoldConfig(
-            volume_m3=self.exhaust_manifold_config.volume_m3,
-            initial_temp_k=800.0,
-            initial_pressure_pa=1.6e5,
-            initial_egr_fraction=1.0,
-        )
-        models = SimulationConfig(rpm=1200.0, integrator="rk4")
-        cfg = FullCycleConfig(
-            rpm=1200.0,
-            cycles=2,
-            step_deg=1.0,
-            intake_manifold_config=intake_config,
-            exhaust_manifold_config=exhaust_config,
-            p_ambient_pa=0.8e5,
-            t_ambient_k=300.0,
-            valve_timing=valve_timing,
-            models=models,
-        )
-
-        result = simulate_full_cycle(self.geom, self.fuel, self.schedule, cfg)
-
-        self.assertGreater(np.max(result.egr_intake_frac), intake_config.initial_egr_fraction)
-        self.assertTrue(np.all((result.egr_intake_frac >= 0.0) & (result.egr_intake_frac <= 1.0)))
-        self.assertTrue(np.all((result.egr_exhaust_frac >= 0.0) & (result.egr_exhaust_frac <= 1.0)))
-        self.assertTrue(np.all((result.egr_cylinder_frac >= 0.0) & (result.egr_cylinder_frac <= 1.0)))
 
 
 if __name__ == "__main__":

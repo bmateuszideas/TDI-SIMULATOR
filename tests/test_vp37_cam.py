@@ -1,6 +1,6 @@
 import unittest
 
-from virtual_tdi.vp37_cam import VP37CamProfile
+from virtual_tdi.injection import VP37CamProfile
 
 
 class TestVP37Cam(unittest.TestCase):

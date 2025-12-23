@@ -1,6 +1,6 @@
 import unittest
 
-from virtual_tdi.edc_maps import BoostTargetMap2D, EGRMafTargetMap2D, SmokeLimiterMap2D
+from virtual_tdi.injection import BoostTargetMap2D, EGRMafTargetMap2D, SmokeLimiterMap2D
 
 
 class TestEDCMaps(unittest.TestCase):

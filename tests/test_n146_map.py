@@ -1,6 +1,6 @@
 import unittest
 
-from virtual_tdi.n146_map import N146VoltageMap2D
+from virtual_tdi.injection import N146VoltageMap2D
 
 
 class TestN146Map(unittest.TestCase):

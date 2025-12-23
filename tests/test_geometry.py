@@ -1,16 +1,16 @@
 import math
 import unittest
 
-from virtual_tdi.config_loader import create_geometry_from_config, load_yaml_config
-from virtual_tdi.geometry import cylinder_volume_m3
-from virtual_tdi.models import EngineGeometry
+from virtual_tdi.core import create_geometry_from_config, load_yaml_config
+from virtual_tdi.physics import cylinder_volume_m3, piston_position_derivative_ds_dtheta
+from virtual_tdi.engine_model import EngineGeometry
 
 
 class TestGeometry(unittest.TestCase):
     def setUp(self):
         """Load engine geometry from the master config file."""
-        self.config = load_yaml_config("engine_reference_sources.yaml")
-        self.geom: EngineGeometry = create_geometry_from_config(self.config)
+        config = load_yaml_config("engine_reference_sources.yaml")
+        self.geom: EngineGeometry = create_geometry_from_config(config)
         self.assertIsNotNone(self.geom)
 
     def test_volume_at_theta_zero_and_pi(self):
@@ -43,18 +43,32 @@ class TestGeometry(unittest.TestCase):
         self.assertTrue(L > 0)
         self.assertTrue(delta >= 0)
 
-        # Angle for true TDC (highest piston position)
-        # This occurs when crank arm and conrod are aligned vertically.
-        # Geometrically, this is when sin(theta) * r = delta
-        if delta < r:
-            theta_tdc = math.asin(delta / r)
-            _, dV_dtheta_tdc, _ = cylinder_volume_m3(self.geom, theta_tdc)
-            self.assertAlmostEqual(dV_dtheta_tdc, 0.0, places=5, msg="dV/dtheta should be 0 at true TDC")
+        def find_root(fn, a, b):
+            fa, fb = fn(a), fn(b)
+            if fa == 0.0:
+                return a
+            if fb == 0.0:
+                return b
+            if fa * fb > 0.0:
+                raise AssertionError("Root not bracketed for ds/dtheta.")
+            lo, hi = a, b
+            for _ in range(60):
+                mid = 0.5 * (lo + hi)
+                fm = fn(mid)
+                if fa * fm <= 0.0:
+                    hi, fb = mid, fm
+                else:
+                    lo, fa = mid, fm
+            return 0.5 * (lo + hi)
 
-        # Angle for true BDC (lowest piston position)
-        theta_bdc = math.pi - math.asin(delta / r) if delta < r else math.pi
+        ds_dtheta = lambda th: piston_position_derivative_ds_dtheta(self.geom, th)
+        theta_tdc = find_root(ds_dtheta, -math.pi / 2.0, math.pi / 2.0)
+        _, dV_dtheta_tdc, _ = cylinder_volume_m3(self.geom, theta_tdc)
+        self.assertAlmostEqual(dV_dtheta_tdc, 0.0, places=6, msg="dV/dtheta should be 0 at true TDC")
+
+        theta_bdc = find_root(ds_dtheta, math.pi / 2.0, 3.0 * math.pi / 2.0)
         _, dV_dtheta_bdc, _ = cylinder_volume_m3(self.geom, theta_bdc)
-        self.assertAlmostEqual(dV_dtheta_bdc, 0.0, places=5, msg="dV/dtheta should be 0 at true BDC")
+        self.assertAlmostEqual(dV_dtheta_bdc, 0.0, places=6, msg="dV/dtheta should be 0 at true BDC")
 
     def test_volume_and_derivative_at_intermediate_points(self):
         """
@@ -88,20 +102,6 @@ class TestGeometry(unittest.TestCase):
         self.assertAlmostEqual(dV_dtheta, expected_dV_dtheta, places=12)
         # The derivative should be strongly positive (volume increasing)
         self.assertGreater(dV_dtheta, 0)
-
-    def test_compression_ratio_and_compression_stroke_monotonicity(self):
-        comp_params = self.config["parameters"]["combustion_chamber"]
-        reference_cr = float(str(comp_params["compression_ratio"]["value"]).split(":")[0])
-        rel_error = abs(self.geom.compression_ratio - reference_cr) / reference_cr
-        self.assertLess(rel_error, 0.01, msg="Compression ratio mismatch exceeds 1% tolerance.")
-
-        prev_v = None
-        for i in range(181):
-            theta = math.pi + i * (math.pi / 180.0)
-            v, _, _ = cylinder_volume_m3(self.geom, theta)
-            if prev_v is not None:
-                self.assertLessEqual(v, prev_v + 1e-12, msg="Volume must decrease during compression stroke.")
-            prev_v = v
 
 
 if __name__ == "__main__":

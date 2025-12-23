@@ -1,8 +1,8 @@
 import unittest
 
-from virtual_tdi.hydraulics import NozzleConfig, VP37HydraulicConfig, estimate_pilot_ratio
-from virtual_tdi.models import Fuel
-from virtual_tdi.vp37_cam import VP37CamProfile
+from virtual_tdi.physics import NozzleConfig, VP37HydraulicConfig, estimate_pilot_ratio
+from virtual_tdi.engine_model import Fuel
+from virtual_tdi.injection import VP37CamProfile
 
 
 class TestHydraulics(unittest.TestCase):

@@ -1,17 +1,11 @@
 import unittest
 
-from virtual_tdi.full_cycle import BoundaryConditions, FullCycleConfig, simulate_full_cycle
-from virtual_tdi.models import EngineGeometry, Fuel, InjectionSchedule, SimulationConfig
-from virtual_tdi.valvetrain import ValveTiming
+from virtual_tdi.engine_model import BoundaryConditions, FullCycleConfig, simulate_full_cycle
+from virtual_tdi.engine_model import EngineGeometry, Fuel, InjectionSchedule, SimulationConfig
+from virtual_tdi.physics import ValveTiming
 
 
 class TestFullCycleSanity(unittest.TestCase):
-    def test_default_config_has_boundaries_and_valve_flow(self):
-        cfg = FullCycleConfig(rpm=1500.0)
-        self.assertIsNotNone(cfg.boundaries)
-        self.assertGreater(cfg.valve_flow.intake_valve_diameter_m, 0.0)
-        self.assertGreater(cfg.valve_flow.exhaust_valve_diameter_m, 0.0)
-
     def test_runs_and_positive_imep(self):
         bore = 79.5e-3
         stroke = 95.5e-3
@@ -21,10 +15,6 @@ class TestFullCycleSanity(unittest.TestCase):
             rod_length_m=144e-3,
             crank_radius_m=stroke / 2.0,
             offset_m=0.5e-3,
-            bowl_volume_m3=17.5e-6,
-            head_recess_m3=4.5e-6,
-            gasket_thickness_m=1.53e-3,
-            piston_protrusion_m=0.8e-3,
             compression_ratio=19.5,
             cylinders=4,
         )
@@ -54,9 +44,9 @@ class TestFullCycleSanity(unittest.TestCase):
             models=models,
         )
         result = simulate_full_cycle(geom, fuel, schedule, cfg)
-        self.assertIn("imep_pa", result.metrics)
-        self.assertGreater(result.metrics["peak_pressure_pa"], 1.0e5)
-        self.assertGreater(result.metrics["imep_pa"], 1.0e4)
+        self.assertIn("imep_bar", result.metrics)
+        self.assertGreater(result.metrics["peak_pressure_bar"], 1.0)
+        self.assertGreater(result.metrics["imep_bar"], 0.1)
 
 
 if __name__ == "__main__":

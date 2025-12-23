@@ -1,6 +1,6 @@
 import unittest
 
-from virtual_tdi.controller import solve_monotone_bisect
+from virtual_tdi.core import solve_monotone_bisect
 
 
 class TestController(unittest.TestCase):
