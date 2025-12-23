@@ -37,7 +37,7 @@ Full-chem nie jest wymagany.
 - [ ] `docs/BASELINE_MAPY_ECU_I_OSPRZET.md`: opis map i osprzetu
 - [ ] Mapy ECU: `Mapa*SOI*Table 1.csv`, `Mapa*N146*Table 1.csv`, `SmokeLimiter*.csv`, `Mapa_EGR*.csv`, `Mapa_BOOST*.csv`
 - [ ] Profile: `profil_krzywek*.md`, `skok_tloczka_vp37_de110.csv`
-- [ ] `specs_with_sources.md`: uzupelnione parametry i zrodla
+- [ ] `DANE_TECHNICZNO_FIZYCZNE.md`: uzupelnione parametry i zrodla (archiwum: `SMIETNIK/specs_with_sources.md`)
 
 ## Walidacja i testy
 - [ ] Zestawy porownawcze: P-theta, IMEP, EGT, BSFC

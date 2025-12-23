@@ -1,8 +1,8 @@
 import unittest
 
-from virtual_tdi.flow import orifice_mdot_kg_per_s
-from virtual_tdi.models import SimulationConfig
-from virtual_tdi.thermo import GasModel
+from virtual_tdi.physics import orifice_mdot_kg_per_s
+from virtual_tdi.engine_model import SimulationConfig
+from virtual_tdi.physics import GasModel
 
 
 def _has_module(name: str) -> bool:

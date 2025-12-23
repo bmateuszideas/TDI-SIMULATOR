@@ -5,7 +5,7 @@ import yaml
 import os
 import csv
 
-from virtual_tdi.dataset import main as dataset_main
+from virtual_tdi.core import dataset_main
 
 class TestDatasetConfig(unittest.TestCase):
 
@@ -26,10 +26,6 @@ class TestDatasetConfig(unittest.TestCase):
                 },
                 "combustion_chamber": {
                     "compression_ratio": {"value": "20.0:1"},
-                    "bowl_volume": {"value": 17.0, "unit": "cm3"},
-                    "head_recess_volume": {"value": 4.4, "unit": "cm3"},
-                    "gasket_thickness": {"value": 1.5, "unit": "mm"},
-                    "piston_protrusion": {"value": 0.7, "unit": "mm"},
                     "total_cylinders": {"value": 4}
                 }
             }
@@ -69,7 +65,7 @@ class TestDatasetConfig(unittest.TestCase):
         with open(self.output_csv_path, 'r') as f:
             reader = csv.reader(f)
             header = next(reader)
-            self.assertIn("out_peak_pressure_pa", header)
+            self.assertIn("out_peak_pressure_bar", header)
             data = next(reader)
             self.assertEqual(len(data), len(header))
 

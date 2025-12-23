@@ -1,6 +1,6 @@
 import unittest
 
-from virtual_tdi.valvetrain import valve_lift_fraction
+from virtual_tdi.physics import valve_lift_fraction
 
 
 class TestValveTrain(unittest.TestCase):
