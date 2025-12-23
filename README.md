@@ -26,23 +26,9 @@ Mapy ECU w repo są **referencją/warstwą sterownika**, a nie “silnikiem” s
 
 Jeśli chcesz generować dane stricte “z fizyki” (do ML/DL), uruchamiaj dataset bez map (`python -m virtual_tdi dataset ...` domyślnie nie używa map) albo w symulacji ustaw `--ecu off` i steruj wejściami jawnie.
 
-## Quickstart
+## Szybki start
 
 1) Zainstaluj zależności z `requirements.txt` w swoim środowisku.
-
-```
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-2) Sprawdź CLI:
-
-```
-python -m virtual_tdi --help
-```
-
-## Run
 
 GUI (prosty panel do uruchamiania symulacji):
 
@@ -82,6 +68,8 @@ ECU-first (używa map jeśli są w repo):
 
 `python -m virtual_tdi dataset --n 5000 --rpm-min 1500 --rpm-max 1500 --ecu limit --use-soi-map --use-n146-map --use-boost-map --fuel-temp-min 20 --fuel-temp-max 90 --iq-basis volume --nozzles 0.184,0.205 --step-deg 1.0 --out data/synthetic_ecu.csv`
 
+Wiecej o datasetach ML (geometria per-probka `--mech sample`, obsluga bledow `--on-error`, metadane `--meta-out`): `docs/DATASET_ML.md`.
+
 Sweep kąta wtrysku (SOI main):
 
 `python -m virtual_tdi --mode full --rpm 1500 --fuel diesel --fuel-mg 20 --soi-main-sweep -14:-2:1 --out out`
@@ -113,13 +101,9 @@ Wyniki:
 - Opcjonalne backendy fizyki: `--thermo-backend coolprop`, `--flow-backend fluids`.
 - Opoznienie zaplonu: `--ignition-delay arrhenius|fixed_deg` (dla `fixed_deg` ustaw `--ignition-delay-deg`).
 
-## Tests
+## Testy
 
-`python -m unittest discover -s tests -p "test_*.py" -v`
-
-## CI
-
-CI działa na GitHub Actions (Python 3.12) i uruchamia testy z katalogu `tests`.
+`python -m unittest discover -s tests -p "test_*.py"`
 
 ## Co dalej (kolejne etapy)
 

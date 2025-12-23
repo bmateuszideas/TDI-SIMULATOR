@@ -40,37 +40,67 @@ parameters:
     cylinder_offset:
       value: 0.5
       unit: mm
-      source: "CAD models EA827, kompletna_lista_z_danymi.md"
+      source: "CAD models EA827, SMIETNIK/kompletna_lista_z_danymi_SCALONA.md"
 
   # ----------------------------------------------------------------------------
-  # COMBUSTION CHAMBER & COMPRESSION
-  # Parameters defining the thermodynamic volume.
+  # COMBUSTION CHAMBER
+  # Clearance volume components used to match compression ratio.
   # ----------------------------------------------------------------------------
   combustion_chamber:
-    compression_ratio:
-      value: "19.5:1"
-      unit: "-"
-      source: "VW SSP 198"
-    bowl_volume:
-      value: 17.5
-      unit: cm3
-      source: "Estymacja: tłok ALH bowl volume + dopasowanie do CR"
-    head_recess_volume:
-      value: 4.5
-      unit: cm3
-      source: "Estymacja: recess w głowicy + dopasowanie do CR"
-    gasket_thickness:
-      value: 1.53
-      unit: mm
-      source: "Typowa uszczelka 1.9 TDI (1-2 karby)"
-    piston_protrusion:
-      value: 0.8
-      unit: mm
-      source: "Zakres katalogowy ALH/AFN, estymacja do CR"
     total_cylinders:
       value: 4
       unit: "-"
       source: "VW SSP 198"
+    bowl_volume:
+      value: 21.95
+      unit: cm3
+      source: "Adjusted to satisfy CR 19.5 with gasket/protrusion and head recess; derived from ElsaWin baseline."
+    head_recess_volume:
+      value: 0.8
+      unit: cm3
+      source: "Estimated near-zero head recess; valve seat margin allowance."
+    gasket_thickness:
+      value: 1.63
+      unit: mm
+      source: "Elring/Victor Reinz catalog (2-hole gasket, compressed thickness)."
+    piston_protrusion:
+      value: 1.05
+      unit: mm
+      source: "ElsaWin piston protrusion range 0.91-1.20 mm; midpoint for 2-hole gasket."
+
+  # ----------------------------------------------------------------------------
+  # INTERCOOLER
+  # Parameters for the intercooler heat soak model.
+  # ----------------------------------------------------------------------------
+  intercooler:
+    mass_al:
+      value: 1.5
+      unit: kg
+      source: "Estimate"
+    cp_al:
+      value: 900.0
+      unit: J/kg-K
+      source: "Material property (Aluminium)"
+    area_ext:
+      value: 0.5
+      unit: m2
+      source: "Estimate"
+    h_ambient_base:
+      value: 10.0
+      unit: W/m2-K
+      source: "Estimate"
+    h_ambient_factor_v:
+      value: 2.0
+      unit: (W/m2-K)/(km/h)
+      source: "Estimate"
+    h_ic_air:
+      value: 100.0
+      unit: W/m2-K
+      source: "Estimate"
+    area_ic_air:
+      value: 0.2
+      unit: m2
+      source: "Estimate"
 
   # ----------------------------------------------------------------------------
   # VALVETRAIN
@@ -84,15 +114,15 @@ parameters:
     intake_valve_diameter:
       value: 35.95
       unit: mm
-      source: "kompletna_lista_z_danymi_rozszerzona.md"
+      source: "SMIETNIK/kompletna_lista_z_danymi_rozszerzona.md"
     exhaust_valve_diameter:
       value: 31.45
       unit: mm
-      source: "kompletna_lista_z_danymi_rozszerzona.md"
+      source: "SMIETNIK/kompletna_lista_z_danymi_rozszerzona.md"
     max_valve_lift:
       value: 8.5
       unit: mm
-      source: "kompletna_lista_z_danymi_rozszerzona.md (for ALH camshaft)"
+      source: "SMIETNIK/kompletna_lista_z_danymi_rozszerzona.md (for ALH camshaft)"
 
   # ----------------------------------------------------------------------------
   # INJECTION SYSTEM (VP37 - ALH 90HP baseline)
@@ -105,7 +135,7 @@ parameters:
     plunger_diameter:
       value: 10.0
       unit: mm
-      source: "kompletna_lista_z_danymi_rozszerzona.md (manual gearbox)"
+      source: "SMIETNIK/kompletna_lista_z_danymi_rozszerzona.md (manual gearbox)"
     nozzle_holes:
       value: 5
       unit: "-"
@@ -113,7 +143,7 @@ parameters:
     nozzle_hole_diameter:
       value: 0.184
       unit: mm
-      source: "kompletna_lista_z_danymi_rozszerzona.md (for ALH 90HP)"
+      source: "SMIETNIK/kompletna_lista_z_danymi_rozszerzona.md (for ALH 90HP)"
     opening_pressure_pilot:
       value: 190
       unit: bar
@@ -122,7 +152,50 @@ parameters:
       value: 300
       unit: bar
       source: "VW SSP 211, Bosch Datasheet"
+  
+  # ----------------------------------------------------------------------------
+  # EGR VALVE
+  # Parameters for the Exhaust Gas Recirculation valve.
+  # ----------------------------------------------------------------------------
+  egr_valve:
+    max_area:
+      value: 0.0001 # m2
+      unit: m2
+      source: "Estimate"
+    discharge_coeff:
+      value: 0.8
+      unit: "-"
+      source: "Typical orifice discharge coefficient"
 
+  # ----------------------------------------------------------------------------
+  # N146 ACTUATOR (VP37 Dosing Plunger Control)
+  # Dynamic model parameters for the N146 dosing plunger.
+  # ----------------------------------------------------------------------------
+  n146_actuator:
+    plunger_mass:
+      value: 0.005 # kg
+      unit: kg
+      source: "Estimate, typical small solenoid plunger"
+    spring_constant:
+      value: 500.0 # N/m
+      unit: N/m
+      source: "Estimate"
+    damping_coefficient:
+      value: 0.05 # Ns/m
+      unit: Ns/m
+      source: "Estimate"
+    force_coefficient:
+      value: 0.1 # N/V (Force per Volt)
+      unit: N/V
+      source: "Estimate, relates coil voltage to force"
+    max_travel:
+      value: 2.0 # mm (maximum plunger travel)
+      unit: mm
+      source: "Estimate"
+    initial_voltage:
+      value: 5.0 # V (initial voltage applied to the N146)
+      unit: V
+      source: "Estimate"
   # ----------------------------------------------------------------------------
   # RECIPROCATING AND ROTATING MASSES
   # Used for inertia, vibration, and load calculations.
@@ -131,15 +204,15 @@ parameters:
     piston:
       value: 440
       unit: g
-      source: "kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
+      source: "SMIETNIK/kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
     wrist_pin:
       value: 120
       unit: g
-      source: "kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
+      source: "SMIETNIK/kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
     rings_set:
       value: 40
       unit: g
-      source: "kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
+      source: "SMIETNIK/kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
     total_conrod_mass:
       value: 580 # Approximate value based on aftermarket parts
       unit: g
@@ -152,18 +225,18 @@ parameters:
       value: 750 # 440 + 120 + 40 + 145
       unit: g
       source: "Calculated"
-    
-      # ----------------------------------------------------------------------------
-      # MANIFOLDS (0D Control Volumes)
-      # Initial estimates for intake/exhaust runner volumes.
-      # ----------------------------------------------------------------------------
-      manifolds:
-        intake_volume:
-          value: 2.0
-          unit: L
-          source: "Placeholder estimate. To be verified/updated in Milestone M2 (Manifolds)."
-        exhaust_volume:
-          value: 1.5
-          unit: L
-          source: "Placeholder estimate. To be verified/updated in Milestone M2 (Manifolds)."
+
+  # ----------------------------------------------------------------------------
+  # MANIFOLDS (0D Control Volumes)
+  # Initial estimates for intake/exhaust runner volumes.
+  # ----------------------------------------------------------------------------
+  manifolds:
+    intake_volume:
+      value: 2.0
+      unit: L
+      source: "Placeholder estimate. To be verified/updated in Milestone M2 (Manifolds)."
+    exhaust_volume:
+      value: 1.5
+      unit: L
+      source: "Placeholder estimate. To be verified/updated in Milestone M2 (Manifolds)."
     

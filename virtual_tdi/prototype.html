@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1.9 TDI Virtual Engine Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2c5282;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .nav-tab:hover {
+            background: #3182ce;
+            transform: translateY(-2px);
+        }
+
+        .nav-tab.active {
+            background: #2b6cb0;
+            box-shadow: 0 4px 15px rgba(66, 153, 225, 0.4);
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .control-group h3 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        label {
+            min-width: 120px;
+            font-weight: 500;
+            color: #4a5568;
+        }
+
+        input, select {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .run-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #38a169, #48bb78);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .run-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(56, 161, 105, 0.3);
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .result-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .result-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            height: 400px;
+            position: relative;
+        }
+
+        .chart-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .data-table {
+            width: 100%;
+            background: white;
+            border-collapse: collapse;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        .data-table th {
+            background: #4299e1;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4299e1;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-ready { background: #48bb78; }
+        .status-running { background: #ed8936; }
+        .status-error { background: #f56565; }
+
+        .file-input-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            background: #edf2f7;
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            background: #e2e8f0;
+            border-color: #a0aec0;
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background: #ebf8ff;
+            border-color: #3182ce;
+            color: #2c5282;
+        }
+
+        .alert-warning {
+            background: #fffbf0;
+            border-color: #ed8936;
+            color: #c05621;
+        }
+
+        .alert-error {
+            background: #fed7d7;
+            border-color: #e53e3e;
+            color: #c53030;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 1.9 TDI Virtual Engine Simulator</h1>
+            <p>"Cyfrowy Duch" - White-box Physics Simulation of VW 1.9 TDI ALH Engine</p>
+            
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="simulation">Simulation</button>
+                <button class="nav-tab" data-tab="maps">ECU Maps</button>
+                <button class="nav-tab" data-tab="geometry">Geometry</button>
+                <button class="nav-tab" data-tab="results">Results</button>
+                <button class="nav-tab" data-tab="data">Data Export</button>
+            </div>
+        </div>
+
+        <div id="simulation" class="tab-content active">
+            <div class="control-panel">
+                <div class="control-group">
+                    <h3>🔧 Engine Parameters</h3>
+                    <div class="form-row">
+                        <label>RPM:</label>
+                        <input type="number" id="rpm" value="2000" min="800" max="5500" step="50">
+                    </div>
+                    <div class="form-row">
+                        <label>IQ (mg/stroke):</label>
+                        <input type="number" id="iq" value="25" min="0" max="60" step="0.5">
+                    </div>
+                    <div class="form-row">
+                        <label>SOI Offset (deg):</label>
+                        <input type="number" id="soi_offset" value="0" min="-20" max="20" step="0.5">
+                    </div>
+                    <div class="form-row">
+                        <label>Fuel Type:</label>
+                        <select id="fuel_type">
+                            <option value="diesel">Diesel</option>
+                            <option value="svo">SVO Rapeseed</option>
+                            <option value="methanol">Methanol</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>💨 Turbo & Intake</h3>
+                    <div class="form-row">
+                        <label>Boost (mbar):</label>
+                        <input type="number" id="boost" value="1200" min="1000" max="2500" step="10">
+                    </div>
+                    <div class="form-row">
+                        <label>Intake Temp (°C):</label>
+                        <input type="number" id="intake_temp" value="40" min="20" max="80" step="1">
+                    </div>
+                    <div class="form-row">
+                        <label>EGR Rate (%):</label>
+                        <input type="number" id="egr_rate" value="15" min="0" max="30" step="1">
+                    </div>
+                    <div class="form-row">
+                        <label>MAF (mg/stroke):</label>
+                        <input type="number" id="maf" value="500" min="200" max="900" step="10">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>🔥 Combustion Model</h3>
+                    <div class="form-row">
+                        <label>HRR Model:</label>
+                        <select id="hrr_model">
+                            <option value="wiebe">Wiebe (Double)</option>
+                            <option value="vp37_main">VP37 Main Profile</option>
+                            <option value="hydraulic_profile">Hydraulic Profile</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Ignition Delay:</label>
+                        <select id="ign_delay_model">
+                            <option value="arrhenius">Arrhenius Model</option>
+                            <option value="fixed">Fixed (3 deg)</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Pilot Ratio (%):</label>
+                        <input type="number" id="pilot_ratio" value="15" min="0" max="30" step="1">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>⚙️ Hardware Config</h3>
+                    <div class="form-row">
+                        <label>Nozzle Holes:</label>
+                        <input type="number" id="nozzle_holes" value="5" min="4" max="8" step="1">
+                    </div>
+                    <div class="form-row">
+                        <label>Nozzle Ø (mm):</label>
+                        <input type="number" id="nozzle_diameter" value="0.184" min="0.150" max="0.220" step="0.005">
+                    </div>
+                    <div class="form-row">
+                        <label>VP37 Camplate:</label>
+                        <select id="vp37_cam">
+                            <option value="DE110">DE110 (ALH 90hp)</option>
+                            <option value="DE120">DE120 (AHF 110hp)</option>
+                            <option value="DE130">DE130 (ASV 150hp)</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Integrator:</label>
+                        <select id="integrator">
+                            <option value="rk4">RK4</option>
+                            <option value="scipy">SciPy</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button class="run-button" onclick="runSimulation()">
+                <span class="status-indicator status-ready"></span>
+                Run Simulation
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Running thermodynamic simulation...</p>
+            </div>
+
+            <div class="results-grid" id="results-grid" style="display: none;">
+                <div class="result-card">
+                    <div class="result-value" id="result-imep">-</div>
+                    <div class="result-label">IMEP (bar)</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-value" id="result-power">-</div>
+                    <div class="result-label">Power (kW)</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-value" id="result-torque">-</div>
+                    <div class="result-label">Torque (Nm)</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-value" id="result-peak-pressure">-</div>
+                    <div class="result-label">Peak Pressure (bar)</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-value" id="result-peak-temp">-</div>
+                    <div class="result-label">Peak Temp (K)</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-value" id="result-bsfc">-</div>
+                    <div class="result-label">BSFC (g/kWh)</div>
+                </div>
+            </div>
+
+            <div class="chart-container" id="chart-container" style="display: none;">
+                <canvas class="chart-canvas" id="pressureChart"></canvas>
+            </div>
+        </div>
+
+        <div id="maps" class="tab-content">
+            <h2>📊 ECU Maps Visualization</h2>
+            
+            <div class="control-panel">
+                <div class="control-group">
+                    <h3>Map Selection</h3>
+                    <div class="form-row">
+                        <label>Select Map:</label>
+                        <select id="map-select" onchange="loadMap()">
+                            <option value="soi">SOI Map (Start of Injection)</option>
+                            <option value="n146">N146 Voltage Map</option>
+                            <option value="smoke">Smoke Limiter Map</option>
+                            <option value="egr">EGR MAF Target Map</option>
+                            <option value="boost">Boost Target Map</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>Info:</strong> These maps are calibrated for ALH 90hp configuration with 0.184×5 nozzles and DE110 VP37 camplate.
+            </div>
+
+            <div class="chart-container">
+                <canvas class="chart-canvas" id="mapChart"></canvas>
+            </div>
+
+            <table class="data-table" id="map-data-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>RPM</th>
+                        <th>IQ/MAF (mg/stroke)</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody id="map-table-body">
+                </tbody>
+            </table>
+        </div>
+
+        <div id="geometry" class="tab-content">
+            <h2>📐 Engine Geometry & Physics</h2>
+            
+            <div class="control-panel">
+                <div class="control-group">
+                    <h3>Cylinder Geometry</h3>
+                    <div class="form-row">
+                        <label>Bore (mm):</label>
+                        <input type="number" id="bore" value="79.5" step="0.1" readonly>
+                    </div>
+                    <div class="form-row">
+                        <label>Stroke (mm):</label>
+                        <input type="number" id="stroke" value="95.5" step="0.1" readonly>
+                    </div>
+                    <div class="form-row">
+                        <label>Rod Length (mm):</label>
+                        <input type="number" id="rod_length" value="144.0" step="0.1" readonly>
+                    </div>
+                    <div class="form-row">
+                        <label>Desaxage (mm):</label>
+                        <input type="number" id="desaxage" value="0.5" step="0.1" readonly>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Compression Ratio</h3>
+                    <div class="form-row">
+                        <label>CR:</label>
+                        <input type="number" id="compression_ratio" value="19.5" step="0.1" readonly>
+                    </div>
+                    <div class="form-row">
+                        <label>Swept Vol (cm³):</label>
+                        <input type="number" id="swept_volume" value="474.05" step="0.01" readonly>
+                    </div>
+                    <div class="form-row">
+                        <label>Clearance Vol (cm³):</label>
+                        <input type="number" id="clearance_volume" value="25.62" step="0.01" readonly>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Valve Train</h3>
+                    <div class="form-row">
+                        <label>Intake Valve Ø (mm):</label>
+                        <input type="number" id="intake_valve_dia" value="30" step="0.1" readonly>
+                    </div>
+                    <div class="form-row">
+                        <label>Exhaust Valve Ø (mm):</label>
+                        <input type="number" id="exhaust_valve_dia" value="26" step="0.1" readonly>
+                    </div>
+                    <div class="form-row">
+                        <label>Max Lift (mm):</label>
+                        <input type="number" id="max_lift" value="9.0" step="0.1" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas class="chart-canvas" id="geometryChart"></canvas>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>Physics Model:</strong> The simulator uses detailed geometric calculations including desaxage (piston offset) 
+                for accurate V(θ) and dV/dθ computation, non-ideal gas properties via CoolProp, and Woschni heat transfer correlation.
+            </div>
+        </div>
+
+        <div id="results" class="tab-content">
+            <h2>📈 Simulation Results & Analysis</h2>
+            
+            <div class="control-panel">
+                <div class="control-group">
+                    <h3>Analysis Type</h3>
+                    <div class="form-row">
+                        <label>Chart Type:</label>
+                        <select id="chart-type" onchange="updateResultsChart()">
+                            <option value="pv">P-V Diagram</option>
+                            <option value="pressure">Pressure vs Crank Angle</option>
+                            <option value="temperature">Temperature vs Crank Angle</option>
+                            <option value="volume">Volume vs Crank Angle</option>
+                            <option value="hrr">Heat Release Rate</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas class="chart-canvas" id="resultsChart"></canvas>
+            </div>
+
+            <div class="results-grid">
+                <div class="result-card">
+                    <div class="result-value" id="detailed-imep">-</div>
+                    <div class="result-label">Indicated MEP</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-value" id="detailed-bmep">-</div>
+                    <div class="result-label">Brake MEP</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-value" id="detailed-efficiency">-</div>
+                    <div class="result-label">Indicated Efficiency (%)</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-value" id="detailed-sfc">-</div>
+                    <div class="result-label">Specific Fuel Consumption</div>
+                </div>
+            </div>
+
+            <table class="data-table" id="results-table">
+                <thead>
+                    <tr>
+                        <th>Crank Angle (deg)</th>
+                        <th>Pressure (bar)</th>
+                        <th>Temperature (K)</th>
+                        <th>Volume (m³)</th>
+                        <th>Heat Release (J/deg)</th>
+                    </tr>
+                </thead>
+                <tbody id="results-table-body">
+                </tbody>
+            </table>
+        </div>
+
+        <div id="data" class="tab-content">
+            <h2>💾 Data Export & Import</h2>
+            
+            <div class="control-panel">
+                <div class="control-group">
+                    <h3>Export Options</h3>
+                    <div class="form-row">
+                        <button class="nav-tab" onclick="exportResults('csv')">Export CSV</button>
+                        <button class="nav-tab" onclick="exportResults('json')">Export JSON</button>
+                        <button class="nav-tab" onclick="exportConfig()">Export Config</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Import Configuration</h3>
+                    <div class="file-input-container">
+                        <input type="file" class="file-input" id="config-file" accept=".json,.yaml,.yml" onchange="importConfig(this)">
+                        <label class="file-input-label" for="config-file">
+                            📁 Click to import configuration file
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Synthetic Dataset Generation</h3>
+                <div class="form-row">
+                    <label>Number of points:</label>
+                    <input type="number" id="dataset-points" value="1000" min="100" max="10000" step="100">
+                </div>
+                <div class="form-row">
+                    <label>RPM Range:</label>
+                    <input type="text" id="rpm-range" value="1000-4500" placeholder="min-max">
+                </div>
+                <div class="form-row">
+                    <label>IQ Range:</label>
+                    <input type="text" id="iq-range" value="5-50" placeholder="min-max">
+                </div>
+                <button class="run-button" onclick="generateDataset()">Generate Synthetic Dataset</button>
+            </div>
+
+            <div class="alert alert-warning">
+                <strong>Note:</strong> Synthetic dataset generation may take several minutes depending on the number of points.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global simulation state
+        let simulationData = {
+            results: null,
+            config: null,
+            maps: {
+                soi: null,
+                n146: null,
+                smoke: null,
+                egr: null,
+                boost: null
+            }
+        };
+
+        // Mock simulation data for demo
+        const mockSimulationResults = {
+            imep_bar: 12.5,
+            brake_power_kw: 65.2,
+            brake_torque_nm: 185.3,
+            peak_pressure_bar: 85.4,
+            peak_temp_k: 2150,
+            bsfc_g_kwh: 245,
+            pressure: [],
+            temperature: [],
+            volume: [],
+            crank_angle: [],
+            heat_release: []
+        };
+
+        // Generate mock cycle data
+        for (let i = 0; i <= 720; i += 2) {
+            const angle = i;
+            const rad = angle * Math.PI / 180;
+            
+            // Mock pressure curve with compression, combustion, expansion
+            let pressure = 1.0; // Start at atmospheric
+            if (angle < 180) {
+                pressure = 1.0 + 0.02 * angle; // Intake
+            } else if (angle < 360) {
+                pressure = 1.0 + Math.pow((360 - angle) / 180, 1.35) * 30; // Compression
+            } else if (angle < 540) {
+                const combustion = angle > 365 && angle < 400 ? Math.exp(-(angle - 380) * (angle - 380) / 200) * 50 : 0;
+                pressure = 35 * Math.exp(-(angle - 360) / 100) + combustion;
+            } else {
+                pressure = 2.0 + Math.exp(-(angle - 540) / 50) * 5; // Exhaust
+            }
+            
+            mockSimulationResults.pressure.push(pressure);
+            mockSimulationResults.temperature.push(300 + pressure * 15 + Math.random() * 50);
+            mockSimulationResults.volume.push(25.6 + 237 * (1 + Math.cos(rad + Math.PI)) / 2);
+            mockSimulationResults.crank_angle.push(angle);
+            mockSimulationResults.heat_release.push(angle > 365 && angle < 400 ? Math.exp(-(angle - 380) * (angle - 380) / 300) * 1000 : 0);
+        }
+
+        // Tab switching functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('.nav-tab');
+            const contents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const targetTab = this.dataset.tab;
+                    
+                    tabs.forEach(t => t.classList.remove('active'));
+                    contents.forEach(c => c.classList.remove('active'));
+                    
+                    this.classList.add('active');
+                    document.getElementById(targetTab).classList.add('active');
+                    
+                    if (targetTab === 'maps') {
+                        loadMap();
+                    } else if (targetTab === 'geometry') {
+                        updateGeometryChart();
+                    } else if (targetTab === 'results') {
+                        updateResultsChart();
+                    }
+                });
+            });
+
+            // Initialize geometry display
+            updateGeometryDisplay();
+        });
+
+        // Main simulation function
+        async function runSimulation() {
+            const loadingEl = document.getElementById('loading');
+            const resultsEl = document.getElementById('results-grid');
+            const chartEl = document.getElementById('chart-container');
+            const runButton = document.querySelector('.run-button');
+            
+            // Show loading state
+            loadingEl.classList.add('show');
+            resultsEl.style.display = 'none';
+            chartEl.style.display = 'none';
+            runButton.innerHTML = '<span class="status-indicator status-running"></span>Running...';
+            
+            try {
+                // Collect parameters
+                const params = {
+                    rpm: parseFloat(document.getElementById('rpm').value),
+                    iq: parseFloat(document.getElementById('iq').value),
+                    soi_offset: parseFloat(document.getElementById('soi_offset').value),
+                    fuel_type: document.getElementById('fuel_type').value,
+                    boost: parseFloat(document.getElementById('boost').value),
+                    intake_temp: parseFloat(document.getElementById('intake_temp').value),
+                    egr_rate: parseFloat(document.getElementById('egr_rate').value),
+                    maf: parseFloat(document.getElementById('maf').value),
+                    hrr_model: document.getElementById('hrr_model').value,
+                    ign_delay_model: document.getElementById('ign_delay_model').value,
+                    pilot_ratio: parseFloat(document.getElementById('pilot_ratio').value),
+                    nozzle_holes: parseFloat(document.getElementById('nozzle_holes').value),
+                    nozzle_diameter: parseFloat(document.getElementById('nozzle_diameter').value),
+                    vp37_cam: document.getElementById('vp37_cam').value,
+                    integrator: document.getElementById('integrator').value
+                };
+
+                // Simulate processing time
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Mock simulation results with some variation based on parameters
+                const results = {
+                    ...mockSimulationResults,
+                    imep_bar: 8 + params.iq * 0.25 + (params.boost - 1000) * 0.01,
+                    brake_power_kw: params.rpm * (8 + params.iq * 0.25) / 1000,
+                    brake_torque_nm: 150 + params.iq * 2.5,
+                    peak_pressure_bar: 60 + params.iq * 0.8 + (params.boost - 1000) * 0.02,
+                    bsfc_g_kwh: 280 - params.iq * 1.5
+                };
+                
+                simulationData.results = results;
+                simulationData.config = params;
+                
+                displayResults(results);
+                
+            } catch (error) {
+                console.error('Simulation error:', error);
+                alert('Simulation failed: ' + error.message);
+            } finally {
+                loadingEl.classList.remove('show');
+                runButton.innerHTML = '<span class="status-indicator status-ready"></span>Run Simulation';
+            }
+        }
+
+        function displayResults(results) {
+            // Update result cards
+            document.getElementById('result-imep').textContent = results.imep_bar.toFixed(1);
+            document.getElementById('result-power').textContent = results.brake_power_kw.toFixed(1);
+            document.getElementById('result-torque').textContent = results.brake_torque_nm.toFixed(1);
+            document.getElementById('result-peak-pressure').textContent = results.peak_pressure_bar.toFixed(1);
+            document.getElementById('result-peak-temp').textContent = results.peak_temp_k.toFixed(0);
+            document.getElementById('result-bsfc').textContent = results.bsfc_g_kwh.toFixed(0);
+            
+            // Show results
+            document.getElementById('results-grid').style.display = 'grid';
+            
+            // Create pressure chart
+            createPressureChart(results);
+            document.getElementById('chart-container').style.display = 'block';
+        }
+
+        function createPressureChart(results) {
+            const canvas = document.getElementById('pressureChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Set canvas size
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+            ctx.scale(2, 2);
+            
+            const width = canvas.width / 2;
+            const height = canvas.height / 2;
+            const margin = 60;
+            
+            // Draw axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin, height - margin);
+            ctx.lineTo(width - margin, height - margin);
+            ctx.moveTo(margin, height - margin);
+            ctx.lineTo(margin, margin);
+            ctx.stroke();
+            
+            // Draw pressure curve
+            ctx.strokeStyle = '#4299e1';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            const xScale = (width - 2 * margin) / 720;
+            const yScale = (height - 2 * margin) / Math.max(...results.pressure);
+            
+            results.pressure.forEach((pressure, i) => {
+                const x = margin + results.crank_angle[i] * xScale;
+                const y = height - margin - pressure * yScale;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+            
+            // Labels
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Crank Angle (degrees)', width / 2, height - 10);
+            
+            ctx.save();
+            ctx.translate(15, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Pressure (bar)', 0, 0);
+            ctx.restore();
+            
+            // Title
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('Cylinder Pressure vs Crank Angle', width / 2, 30);
+        }
+
+        function loadMap() {
+            const mapType = document.getElementById('map-select').value;
+            const canvas = document.getElementById('mapChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Mock map data
+            const mapData = generateMockMapData(mapType);
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+            ctx.scale(2, 2);
+            
+            drawHeatmap(ctx, mapData, mapType);
+        }
+
+        function generateMockMapData(mapType) {
+            const rpm = [1500, 2000, 2500, 3000, 3500, 4000, 4500];
+            const iq = [0, 10, 20, 30, 40, 50];
+            const data = [];
+            
+            for (let r of rpm) {
+                for (let i of iq) {
+                    let value;
+                    switch (mapType) {
+                        case 'soi':
+                            value = -5 + (r / 1000) * 2 - i * 0.1; // SOI timing
+                            break;
+                        case 'n146':
+                            value = 1000 + r * 0.5 + i * 50; // N146 voltage in mV
+                            break;
+                        case 'smoke':
+                            value = Math.min(50, 10 + (r / 100) + i * 0.8); // Max IQ
+                            break;
+                        case 'egr':
+                            value = 300 + (r / 10) + i * 8; // MAF target
+                            break;
+                        case 'boost':
+                            value = 1000 + (r / 5) + i * 15; // Boost pressure
+                            break;
+                        default:
+                            value = Math.random() * 100;
+                    }
+                    data.push({rpm: r, iq: i, value: value});
+                }
+            }
+            return data;
+        }
+
+        function drawHeatmap(ctx, data, mapType) {
+            const width = ctx.canvas.width / 2;
+            const height = ctx.canvas.height / 2;
+            const margin = 60;
+            
+            // Get unique RPM and IQ values
+            const rpms = [...new Set(data.map(d => d.rpm))].sort((a, b) => a - b);
+            const iqs = [...new Set(data.map(d => d.iq))].sort((a, b) => a - b);
+            const values = data.map(d => d.value);
+            const minVal = Math.min(...values);
+            const maxVal = Math.max(...values);
+            
+            const cellWidth = (width - 2 * margin) / rpms.length;
+            const cellHeight = (height - 2 * margin) / iqs.length;
+            
+            // Draw heatmap cells
+            data.forEach(d => {
+                const rpmIndex = rpms.indexOf(d.rpm);
+                const iqIndex = iqs.indexOf(d.iq);
+                
+                const x = margin + rpmIndex * cellWidth;
+                const y = height - margin - (iqIndex + 1) * cellHeight;
+                
+                const intensity = (d.value - minVal) / (maxVal - minVal);
+                const color = `hsl(${240 - intensity * 240}, 80%, ${50 + intensity * 30}%)`;
+                
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, cellWidth, cellHeight);
+                
+                // Draw value text
+                ctx.fillStyle = intensity > 0.5 ? 'white' : 'black';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(d.value.toFixed(1), x + cellWidth/2, y + cellHeight/2 + 3);
+            });
+            
+            // Draw axes and labels
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(margin, height - margin);
+            ctx.lineTo(width - margin, height - margin);
+            ctx.moveTo(margin, height - margin);
+            ctx.lineTo(margin, margin);
+            ctx.stroke();
+            
+            // Labels
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            
+            rpms.forEach((rpm, i) => {
+                const x = margin + i * cellWidth + cellWidth/2;
+                ctx.fillText(rpm, x, height - margin + 20);
+            });
+            
+            iqs.forEach((iq, i) => {
+                const y = height - margin - i * cellHeight - cellHeight/2;
+                ctx.textAlign = 'right';
+                ctx.fillText(iq, margin - 10, y + 3);
+            });
+            
+            ctx.textAlign = 'center';
+            ctx.fillText('RPM', width / 2, height - 10);
+            
+            ctx.save();
+            ctx.translate(15, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('IQ (mg/stroke)', 0, 0);
+            ctx.restore();
+            
+            // Title
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            const titles = {
+                'soi': 'SOI Map (degrees BTDC)',
+                'n146': 'N146 Voltage Map (mV)',
+                'smoke': 'Smoke Limiter Map (mg/stroke)',
+                'egr': 'EGR MAF Target Map (mg/stroke)',
+                'boost': 'Boost Target Map (mbar abs)'
+            };
+            ctx.fillText(titles[mapType] || 'ECU Map', width / 2, 30);
+        }
+
+        function updateGeometryDisplay() {
+            const bore = parseFloat(document.getElementById('bore').value);
+            const stroke = parseFloat(document.getElementById('stroke').value);
+            const cr = parseFloat(document.getElementById('compression_ratio').value);
+            
+            // Calculate derived values
+            const sweptVol = Math.PI * Math.pow(bore/2, 2) * stroke / 1000; // cm³
+            const clearanceVol = sweptVol / (cr - 1);
+            
+            document.getElementById('swept_volume').value = sweptVol.toFixed(2);
+            document.getElementById('clearance_volume').value = clearanceVol.toFixed(2);
+        }
+
+        function updateGeometryChart() {
+            const canvas = document.getElementById('geometryChart');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+            ctx.scale(2, 2);
+            
+            const width = canvas.width / 2;
+            const height = canvas.height / 2;
+            
+            // Draw piston motion diagram
+            drawPistonMotion(ctx, width, height);
+        }
+
+        function drawPistonMotion(ctx, width, height) {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = 80;
+            const rodLength = 144;
+            const stroke = 95.5;
+            const crankRadius = stroke / 2;
+            
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            
+            // Draw cylinder
+            const cylinderWidth = 100;
+            const cylinderHeight = 200;
+            const cylinderX = centerX - cylinderWidth / 2;
+            const cylinderY = centerY - 100;
+            
+            ctx.strokeRect(cylinderX, cylinderY, cylinderWidth, cylinderHeight);
+            
+            // Draw several piston positions
+            const angles = [0, Math.PI/2, Math.PI, 3*Math.PI/2];
+            const colors = ['#e53e3e', '#38a169', '#3182ce', '#ed8936'];
+            
+            angles.forEach((angle, i) => {
+                const crankX = centerX + crankRadius * Math.cos(angle) * 0.5;
+                const crankY = centerY + crankRadius * Math.sin(angle) * 0.5;
+                
+                const pistonY = crankY + Math.sqrt(Math.pow(rodLength * 0.5, 2) - Math.pow(crankX - centerX, 2));
+                
+                ctx.strokeStyle = colors[i];
+                ctx.fillStyle = colors[i];
+                ctx.lineWidth = 2;
+                
+                // Draw connecting rod
+                ctx.beginPath();
+                ctx.moveTo(crankX, crankY);
+                ctx.lineTo(centerX, pistonY);
+                ctx.stroke();
+                
+                // Draw piston
+                ctx.fillRect(cylinderX + 10, pistonY - 5, cylinderWidth - 20, 10);
+                
+                // Draw crank
+                ctx.beginPath();
+                ctx.arc(crankX, crankY, 5, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+            
+            // Draw crankshaft center
+            ctx.fillStyle = '#333';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 8, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Labels
+            ctx.fillStyle = '#333';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Piston Motion with Desaxage', width / 2, 30);
+            ctx.font = '12px Arial';
+            ctx.fillText('Multiple positions shown: TDC, 90°, BDC, 270°', width / 2, height - 20);
+        }
+
+        function updateResultsChart() {
+            if (!simulationData.results) return;
+            
+            const chartType = document.getElementById('chart-type').value;
+            const canvas = document.getElementById('resultsChart');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+            ctx.scale(2, 2);
+            
+            const width = canvas.width / 2;
+            const height = canvas.height / 2;
+            
+            switch (chartType) {
+                case 'pv':
+                    drawPVDiagram(ctx, width, height);
+                    break;
+                case 'pressure':
+                    drawCrankAngleChart(ctx, width, height, 'pressure', 'Pressure (bar)');
+                    break;
+                case 'temperature':
+                    drawCrankAngleChart(ctx, width, height, 'temperature', 'Temperature (K)');
+                    break;
+                case 'volume':
+                    drawCrankAngleChart(ctx, width, height, 'volume', 'Volume (cm³)');
+                    break;
+                case 'hrr':
+                    drawCrankAngleChart(ctx, width, height, 'heat_release', 'Heat Release Rate (J/deg)');
+                    break;
+            }
+        }
+
+        function drawPVDiagram(ctx, width, height) {
+            const margin = 60;
+            const results = simulationData.results;
+            
+            // Draw axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin, height - margin);
+            ctx.lineTo(width - margin, height - margin);
+            ctx.moveTo(margin, height - margin);
+            ctx.lineTo(margin, margin);
+            ctx.stroke();
+            
+            // Draw P-V curve
+            ctx.strokeStyle = '#4299e1';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            const minVol = Math.min(...results.volume);
+            const maxVol = Math.max(...results.volume);
+            const maxPressure = Math.max(...results.pressure);
+            
+            const xScale = (width - 2 * margin) / (maxVol - minVol);
+            const yScale = (height - 2 * margin) / maxPressure;
+            
+            results.volume.forEach((vol, i) => {
+                const x = margin + (vol - minVol) * xScale;
+                const y = height - margin - results.pressure[i] * yScale;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+            
+            // Labels
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Volume (cm³)', width / 2, height - 10);
+            
+            ctx.save();
+            ctx.translate(15, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Pressure (bar)', 0, 0);
+            ctx.restore();
+            
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('P-V Diagram', width / 2, 30);
+        }
+
+        function drawCrankAngleChart(ctx, width, height, dataKey, ylabel) {
+            const margin = 60;
+            const results = simulationData.results;
+            const data = results[dataKey];
+            
+            if (!data) return;
+            
+            // Draw axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin, height - margin);
+            ctx.lineTo(width - margin, height - margin);
+            ctx.moveTo(margin, height - margin);
+            ctx.lineTo(margin, margin);
+            ctx.stroke();
+            
+            // Draw data curve
+            ctx.strokeStyle = '#4299e1';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            const xScale = (width - 2 * margin) / 720;
+            const yScale = (height - 2 * margin) / Math.max(...data);
+            
+            data.forEach((value, i) => {
+                const x = margin + results.crank_angle[i] * xScale;
+                const y = height - margin - value * yScale;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+            
+            // Labels
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Crank Angle (degrees)', width / 2, height - 10);
+            
+            ctx.save();
+            ctx.translate(15, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(ylabel, 0, 0);
+            ctx.restore();
+            
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText(ylabel + ' vs Crank Angle', width / 2, 30);
+        }
+
+        function exportResults(format) {
+            if (!simulationData.results) {
+                alert('No simulation results to export. Please run a simulation first.');
+                return;
+            }
+            
+            let data, filename, mimeType;
+            
+            if (format === 'csv') {
+                data = convertToCSV(simulationData.results);
+                filename = 'tdi_simulation_results.csv';
+                mimeType = 'text/csv';
+            } else if (format === 'json') {
+                data = JSON.stringify({
+                    config: simulationData.config,
+                    results: simulationData.results
+                }, null, 2);
+                filename = 'tdi_simulation_results.json';
+                mimeType = 'application/json';
+            }
+            
+            downloadFile(data, filename, mimeType);
+        }
+
+        function exportConfig() {
+            const config = getCurrentConfig();
+            const data = JSON.stringify(config, null, 2);
+            downloadFile(data, 'tdi_config.json', 'application/json');
+        }
+
+        function convertToCSV(results) {
+            const headers = ['crank_angle', 'pressure', 'temperature', 'volume', 'heat_release'];
+            let csv = headers.join(',') + '\n';
+            
+            for (let i = 0; i < results.crank_angle.length; i++) {
+                const row = [
+                    results.crank_angle[i],
+                    results.pressure[i],
+                    results.temperature[i],
+                    results.volume[i],
+                    results.heat_release[i]
+                ];
+                csv += row.join(',') + '\n';
+            }
+            
+            return csv;
+        }
+
+        function downloadFile(data, filename, mimeType) {
+            const blob = new Blob([data], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function getCurrentConfig() {
+            return {
+                rpm: parseFloat(document.getElementById('rpm').value),
+                iq: parseFloat(document.getElementById('iq').value),
+                soi_offset: parseFloat(document.getElementById('soi_offset').value),
+                fuel_type: document.getElementById('fuel_type').value,
+                boost: parseFloat(document.getElementById('boost').value),
+                intake_temp: parseFloat(document.getElementById('intake_temp').value),
+                egr_rate: parseFloat(document.getElementById('egr_rate').value),
+                maf: parseFloat(document.getElementById('maf').value),
+                hrr_model: document.getElementById('hrr_model').value,
+                ign_delay_model: document.getElementById('ign_delay_model').value,
+                pilot_ratio: parseFloat(document.getElementById('pilot_ratio').value),
+                nozzle_holes: parseFloat(document.getElementById('nozzle_holes').value),
+                nozzle_diameter: parseFloat(document.getElementById('nozzle_diameter').value),
+                vp37_cam: document.getElementById('vp37_cam').value,
+                integrator: document.getElementById('integrator').value
+            };
+        }
+
+        function importConfig(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    loadConfig(config);
+                    alert('Configuration loaded successfully!');
+                } catch (error) {
+                    alert('Error loading configuration: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function loadConfig(config) {
+            Object.keys(config).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.value = config[key];
+                }
+            });
+        }
+
+        async function generateDataset() {
+            const points = parseInt(document.getElementById('dataset-points').value);
+            const rpmRange = document.getElementById('rpm-range').value.split('-').map(x => parseInt(x));
+            const iqRange = document.getElementById('iq-range').value.split('-').map(x => parseInt(x));
+            
+            alert(`Generating ${points} synthetic data points. This may take a few minutes...`);
+            
+            // Mock dataset generation
+            const dataset = [];
+            for (let i = 0; i < points; i++) {
+                const rpm = rpmRange[0] + Math.random() * (rpmRange[1] - rpmRange[0]);
+                const iq = iqRange[0] + Math.random() * (iqRange[1] - iqRange[0]);
+                
+                dataset.push({
+                    rpm: rpm.toFixed(0),
+                    iq: iq.toFixed(1),
+                    imep_bar: (8 + iq * 0.25).toFixed(2),
+                    brake_power_kw: (rpm * (8 + iq * 0.25) / 1000).toFixed(1),
+                    brake_torque_nm: (150 + iq * 2.5).toFixed(1),
+                    bsfc_g_kwh: (280 - iq * 1.5).toFixed(0)
+                });
+            }
+            
+            const csv = 'rpm,iq_mg_stroke,imep_bar,brake_power_kw,brake_torque_nm,bsfc_g_kwh\n' +
+                       dataset.map(row => Object.values(row).join(',')).join('\n');
+            
+            downloadFile(csv, 'tdi_synthetic_dataset.csv', 'text/csv');
+        }
+    </script>
+</body>
+</html>
