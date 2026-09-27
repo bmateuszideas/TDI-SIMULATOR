@@ -729,6 +729,8 @@ def main(argv: list[str] | None = None) -> int:
 
             lo = float(args.fuel_mg_min)
             hi = float(args.fuel_mg_max)
+            f_lo = _power_kw_for(lo)
+            f_hi = _power_kw_for(hi)
             solve = solve_monotone_bisect(
                 f=_power_kw_for,
                 target=float(args.target_brake_kw),
@@ -739,8 +741,9 @@ def main(argv: list[str] | None = None) -> int:
             )
             if not solve.converged:
                 raise SystemExit(
-                    f"--target-brake-kw {args.target_brake_kw} not reachable in [{lo}, {hi}] mg "
-                    f"(last estimate {_power_kw_for(solve.value):.2f} kW)."
+                    f"--target-brake-kw {args.target_brake_kw} not reachable in [{lo}, {hi}] mg: "
+                    f"achievable power is {f_lo:.2f} kW at {lo} mg and {f_hi:.2f} kW at {hi} mg. "
+                    f"Adjust the target, fuel range, rpm, boost (p-intake/use-boost-map/turbo), or FMEP."
                 )
             result = run_full(float(solve.value))
         elif args.soi_main_sweep is not None:
