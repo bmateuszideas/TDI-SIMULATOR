@@ -6,7 +6,7 @@ from typing import Any
 
 import numpy as np
 
-trapezoid = getattr(np, "trapezoid", np.trapz)
+trapezoid = getattr(np, "trapezoid", None) or np.trapezoid if hasattr(np, "trapezoid") else np.trapz
 
 from .combustion import (
     CombustionScheduleRuntime,
@@ -20,9 +20,7 @@ from .fmep import calculate_fmep_from_config
 from .geometry import geometry_at_theta
 from .heat_transfer import h_woschni_simplified_w_per_m2_k, calculate_wall_heat_loss_j_per_rad
 from .models import EngineGeometry, Fuel, SimulationConfig, ManifoldConfig, ManifoldState
-from .geometry import geometry_at_theta
 from .heat_transfer import calculate_wall_heat_loss_j_per_rad, h_woschni_simplified_w_per_m2_k
-from .models import EngineGeometry, Fuel, SimulationConfig, ManifoldConfig, ManifoldState
 from .thermo import GasModel, omega_rad_per_s
 from .valvetrain import ValveFlow, ValveTiming, effective_curtain_area_m2, valve_lift_fraction
 from .lift_table import ValveLiftTable
@@ -130,14 +128,6 @@ class FullCycleResult:
     egr_intake_frac: np.ndarray
     egr_exhaust_frac: np.ndarray
     egr_cylinder_frac: np.ndarray
-    dq_comb_j_per_deg: np.ndarray
-    dq_wall_j_per_deg: np.ndarray
-    dm_fuel_main_mg_per_deg: np.ndarray
-    torque_indicated_nm_per_cyl: np.ndarray
-    metrics: dict[str, Any]
-    mdot_exhaust_kg_s: np.ndarray
-    intake_lift_frac: np.ndarray
-    exhaust_lift_frac: np.ndarray
     dq_comb_j_per_deg: np.ndarray
     dq_wall_j_per_deg: np.ndarray
     dq_head_j_per_deg: np.ndarray

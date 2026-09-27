@@ -74,7 +74,7 @@ class TestFullCycleHeatTransfer(unittest.TestCase):
             )
         )
 
-        trapezoid = getattr(np, "trapezoid", np.trapz)
+        trapezoid = getattr(np, "trapezoid", None) or np.trapezoid if hasattr(np, "trapezoid") else np.trapz
         q_head_cool = float(trapezoid(result_cool.dq_head_j_per_deg, result_cool.theta_deg))
         q_head_hot = float(trapezoid(result_hot.dq_head_j_per_deg, result_hot.theta_deg))
         self.assertLess(q_head_hot, q_head_cool)

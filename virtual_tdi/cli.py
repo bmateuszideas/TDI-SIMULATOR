@@ -63,7 +63,7 @@ def _make_argparser() -> argparse.ArgumentParser:
         default=Path("engine_reference_sources.yaml"),
         help="Path to engine configuration YAML file.",
     )
-    p.add_argument("--mode", choices=["full", "closed"], default="full")
+    p.add_argument("--mode", choices=["full", "closed", "transient"], default="full")
     p.add_argument("--rpm", type=float, default=1500.0)
     p.add_argument("--fuel", choices=["diesel", "svo", "methanol"], default="diesel")
     p.add_argument("--fuel-mg", type=float, default=20.0, help="Fuel per cyl per 4-stroke cycle (mg)")
@@ -252,6 +252,17 @@ def _make_argparser() -> argparse.ArgumentParser:
         default=None,
         help="Full-cycle only: sweep main SOI as start:end:step (deg), writes soi_sweep.csv to --out.",
     )
+    p.add_argument("--transient-end-s", type=float, default=10.0, help="Transient only: end time [s].")
+    p.add_argument("--transient-dt-s", type=float, default=0.1, help="Transient only: time step [s].")
+    p.add_argument("--rpm-start", type=float, default=None, help="Transient only: initial engine speed [rpm].")
+    p.add_argument("--rpm-target", type=float, default=None, help="Transient only: target engine speed [rpm] (constant).")
+    p.add_argument("--load-torque-nm", type=float, default=0.0, help="Transient only: constant load torque [Nm].")
+    p.add_argument("--load-step-s", type=float, default=None, help="Transient only: apply load torque after this time [s].")
+    p.add_argument("--inertia-kg-m2", type=float, default=0.35, help="Transient only: crankshaft + load inertia [kg m^2].")
+    p.add_argument("--gov-kp", type=float, default=0.10, help="Transient only: governor proportional gain [mg/rpm].")
+    p.add_argument("--gov-ki", type=float, default=0.06, help="Transient only: governor integral gain [mg/rpm/s].")
+    p.add_argument("--turbo-tau-s", type=float, default=0.8, help="Transient only: turbo lag time constant [s].")
+    p.add_argument("--boost-target-bar", type=float, default=1.0, help="Transient only: steady boost target [bar abs].")
     p.add_argument("--line-m", type=float, default=0.0, help="VP37 line length for hydraulic delay [m]")
     p.add_argument("--out", type=Path, default=Path("out"))
     p.add_argument("--no-plot", action="store_true")
@@ -260,7 +271,10 @@ def _make_argparser() -> argparse.ArgumentParser:
 
 def _fmt_value(value) -> str:
     if isinstance(value, (int, float, np.floating, np.integer)):
-        return f"{float(value):.3f}"
+        v = float(value)
+        if v != 0.0 and abs(v) < 1e-3:
+            return f"{v:.6e}"
+        return f"{v:.3f}"
     return str(value)
 
 
@@ -566,8 +580,45 @@ def main(argv: list[str] | None = None) -> int:
             metrics.update({k: v for k, v in ecu.items() if k not in metrics and v is not None})
 
     if args.mode == "closed":
-        # ... (closed cycle logic remains the same)
-        pass
+        models_closed = SimulationConfig(
+            rpm=args.rpm,
+            step_deg=args.step_deg,
+            fuel_mg_per_cycle_per_cyl=float(args.fuel_mg),
+            combustion=make_combustion_config(args.hrr_model if args.hrr_model != "auto" else "wiebe"),
+            thermo_backend=str(args.thermo_backend),
+            flow_backend=str(args.flow_backend),
+            coolprop_fluid=str(args.coolprop_fluid),
+            strict_backends=bool(args.strict_backends),
+            integrator=str(args.integrator),
+            scipy_method=str(args.scipy_method),
+            scipy_rtol=float(args.scipy_rtol),
+            scipy_atol=float(args.scipy_atol),
+            scipy_max_step_deg=float(args.scipy_max_step_deg),
+            intake_pressure_pa=args.p_intake_bar * 1e5,
+            intake_temp_k=args.t_intake_k,
+        )
+        result = simulate_closed_cycle(geom, fuel, build_schedule(fuel_mg=float(args.fuel_mg)), models_closed)
+        annotate_metrics(result.metrics, fuel_mg=float(args.fuel_mg))
+        out_dir: Path = args.out
+        csv_path = _write_csv(out_dir, result)
+        metrics_path = out_dir / "metrics.txt"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        with metrics_path.open("w", encoding="utf-8") as f:
+            for k, v in result.metrics.items():
+                f.write(f"{k}: {_fmt_value(v)}\n")
+        if not args.no_plot:
+            _plot(out_dir, result)
+        print(f"Wrote: {csv_path}")
+        print(f"Wrote: {metrics_path}")
+        if "imep_pa" in result.metrics:
+            print(f"Peak P: {result.metrics['peak_pressure_pa']:.0f} Pa, IMEP: {result.metrics['imep_pa']:.0f} Pa")
+        else:
+            print(f"Peak P: {result.metrics['peak_pressure_pa']:.0f} Pa")
+        return 0
+
+    if args.mode == "transient":
+        return _run_transient_mode(args, geom, fuel, cam, build_schedule, make_combustion_config, manifold_configs)
+
     else: # Full cycle mode
         valve_timing = ValveTiming(ivo_deg=args.ivo, ivc_deg=args.ivc, evo_deg=args.evo, evc_deg=args.evc)
         valve_flow = ValveFlow()
@@ -671,13 +722,63 @@ def main(argv: list[str] | None = None) -> int:
             annotate_metrics(res.metrics, fuel_mg=fuel_mg)
             return res
 
-        # ... (rest of the file needs updates for sensitivity, sweep, etc., but focus on the main path first)
-
         if args.target_brake_kw is not None:
-            # ...
-            pass
+            def _power_kw_for(fuel_mg_val: float) -> float:
+                res = run_full(fuel_mg_val)
+                return float(res.metrics.get("brake_power_kw_est", 0.0))
 
-        result = run_full(float(args.fuel_mg))
+            lo = float(args.fuel_mg_min)
+            hi = float(args.fuel_mg_max)
+            solve = solve_monotone_bisect(
+                f=_power_kw_for,
+                target=float(args.target_brake_kw),
+                x_lo=lo,
+                x_hi=hi,
+                tol=float(args.target_tol_kw),
+                max_iter=25,
+            )
+            if not solve.converged:
+                raise SystemExit(
+                    f"--target-brake-kw {args.target_brake_kw} not reachable in [{lo}, {hi}] mg "
+                    f"(last estimate {_power_kw_for(solve.value):.2f} kW)."
+                )
+            result = run_full(float(solve.value))
+        elif args.soi_main_sweep is not None:
+            parts = str(args.soi_main_sweep).split(":")
+            if len(parts) != 3:
+                raise SystemExit("--soi-main-sweep expects start:end:step")
+            sw_start, sw_end, sw_step = (float(x) for x in parts)
+            if sw_step <= 0.0:
+                raise SystemExit("--soi-main-sweep step must be > 0")
+            sweep_rows = []
+            n_pts = int(round((sw_end - sw_start) / sw_step)) + 1
+            for k in range(n_pts):
+                soi_val = sw_start + k * sw_step
+                args.soi_main = soi_val
+                res_sw = run_full(float(args.fuel_mg))
+                sweep_rows.append(
+                    {
+                        "soi_main_deg": soi_val,
+                        "imep_bar": float(res_sw.metrics.get("imep_bar", 0.0)),
+                        "brake_power_kw_est": float(res_sw.metrics.get("brake_power_kw_est", 0.0)),
+                        "peak_pressure_bar": float(res_sw.metrics.get("peak_pressure_pa", 0.0)) / 1.0e5,
+                    }
+                )
+                print(f"SOI {soi_val:+.1f} deg: IMEP {sweep_rows[-1]['imep_bar']:.2f} bar")
+            args.soi_main = None
+            out_dir_sweep: Path = args.out
+            out_dir_sweep.mkdir(parents=True, exist_ok=True)
+            sweep_path = out_dir_sweep / "soi_sweep.csv"
+            with sweep_path.open("w", newline="", encoding="utf-8") as f:
+                w = csv.writer(f)
+                w.writerow(["soi_main_deg", "imep_bar", "brake_power_kw_est", "peak_pressure_bar"])
+                for row in sweep_rows:
+                    w.writerow([f"{row['soi_main_deg']:.2f}", f"{row['imep_bar']:.3f}",
+                                f"{row['brake_power_kw_est']:.3f}", f"{row['peak_pressure_bar']:.2f}"])
+            print(f"Wrote: {sweep_path}")
+            result = run_full(float(args.fuel_mg))
+        else:
+            result = run_full(float(args.fuel_mg))
 
     out_dir: Path = args.out
     csv_path = _write_csv(out_dir, result)
@@ -697,6 +798,157 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(f"Peak P: {result.metrics['peak_pressure_pa']:.0f} Pa")
     return 0
+
+
+def _run_transient_mode(args, geom, fuel, cam, build_schedule, make_combustion_config, manifold_configs) -> int:
+    from .transient import GovernorConfig, TurboLagConfig, TransientConfig, run_transient
+    from .valvetrain import ValveTiming, ValveFlow
+
+    rpm_start = float(args.rpm_start) if args.rpm_start is not None else float(args.rpm)
+    rpm_target = float(args.rpm_target) if args.rpm_target is not None else float(args.rpm)
+    load_nm = float(args.load_torque_nm)
+    load_step_s = args.load_step_s
+
+    def load_fn(t: float) -> float:
+        if load_step_s is not None:
+            return load_nm if t >= float(load_step_s) else 0.0
+        return load_nm
+
+    gov = GovernorConfig(
+        kp_mg_per_rpm=float(args.gov_kp),
+        ki_mg_per_rpm_s=float(args.gov_ki),
+    )
+    turbo = TurboLagConfig(
+        tau_s=float(args.turbo_tau_s),
+        p_boost_target_bar_abs=float(args.boost_target_bar),
+    )
+    tcfg = TransientConfig(
+        t_end_s=float(args.transient_end_s),
+        dt_s=float(args.transient_dt_s),
+        rpm_start=rpm_start,
+        rpm_target=lambda t: rpm_target,
+        load_torque_nm_fn=load_fn,
+        inertia_kg_m2=float(args.inertia_kg_m2),
+        governor=gov,
+        turbo_lag=turbo,
+        p_intake_start_bar_abs=float(args.p_intake_bar),
+        t_intake_k=float(args.t_intake_k),
+        p_exhaust_bar_abs=float(args.p_exhaust_bar),
+        t_exhaust_k=float(args.t_exhaust_k),
+        cycles_per_point=1,
+    )
+    models = SimulationConfig(
+        rpm=rpm_target,
+        step_deg=args.step_deg,
+        fuel_mg_per_cycle_per_cyl=float(args.fuel_mg),
+        combustion=make_combustion_config(args.hrr_model if args.hrr_model != "auto" else "wiebe"),
+        thermo_backend=str(args.thermo_backend),
+        flow_backend=str(args.flow_backend),
+        coolprop_fluid=str(args.coolprop_fluid),
+        strict_backends=bool(args.strict_backends),
+        integrator=str(args.integrator),
+        scipy_method=str(args.scipy_method),
+        scipy_rtol=float(args.scipy_rtol),
+        scipy_atol=float(args.scipy_atol),
+        scipy_max_step_deg=float(args.scipy_max_step_deg),
+    )
+    valve_timing = ValveTiming(ivo_deg=args.ivo, ivc_deg=args.ivc, evo_deg=args.evo, evc_deg=args.evc)
+    valve_flow = ValveFlow()
+
+    def schedule_adapter(iq_mg: float):
+        return build_schedule(fuel_mg=float(iq_mg))
+
+    n_total = int(round(tcfg.t_end_s / tcfg.dt_s)) + 1
+
+    def _progress(done: int, total: int) -> None:
+        if done % max(1, total // 20) == 0 or done == total:
+            print(f"transient: {done}/{total} steps")
+
+    res = run_transient(
+        geom,
+        fuel,
+        schedule_adapter,
+        tcfg,
+        models=models,
+        valve_timing=valve_timing,
+        valve_flow=valve_flow,
+        valve_lift_table=None,
+        step_deg=float(args.step_deg),
+        cam=cam,
+        progress=_progress,
+    )
+
+    out_dir: Path = args.out
+    out_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = out_dir / "transient.csv"
+    with csv_path.open("w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(
+            [
+                "t_s", "rpm", "fuel_mg_per_stroke", "brake_torque_nm", "load_torque_nm",
+                "brake_power_kw", "p_intake_bar_abs", "imep_bar", "peak_pressure_bar",
+            ]
+        )
+        for s in res.samples:
+            w.writerow(
+                [
+                    f"{s.t_s:.3f}", f"{s.rpm:.1f}", f"{s.fuel_mg:.2f}", f"{s.brake_torque_nm:.2f}",
+                    f"{s.load_torque_nm:.2f}", f"{s.brake_power_kw:.3f}", f"{s.p_intake_bar_abs:.3f}",
+                    f"{s.imep_bar:.3f}", f"{s.peak_pressure_bar:.2f}",
+                ]
+            )
+    print(f"Wrote: {csv_path}")
+
+    if not args.no_plot:
+        _plot_transient(out_dir, res)
+
+    final = res.samples[-1]
+    print(
+        f"Transient done: final rpm {final.rpm:.0f} (target {rpm_target:.0f}), "
+        f"IQ {final.fuel_mg:.1f} mg, brake torque {final.brake_torque_nm:.1f} Nm, "
+        f"load {final.load_torque_nm:.1f} Nm"
+    )
+    return 0
+
+
+def _plot_transient(out_dir: Path, res) -> None:
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except Exception:
+        print("matplotlib not available; skipping transient plot.")
+        return
+
+    t = [s.t_s for s in res.samples]
+    rpm = [s.rpm for s in res.samples]
+    iq = [s.fuel_mg for s in res.samples]
+    tq = [s.brake_torque_nm for s in res.samples]
+    load = [s.load_torque_nm for s in res.samples]
+    p_int = [s.p_intake_bar_abs for s in res.samples]
+
+    fig, axes = plt.subplots(4, 1, figsize=(8, 12), sharex=True)
+    axes[0].plot(t, rpm, "-")
+    axes[0].set_ylabel("Engine speed [rpm]")
+    axes[0].grid(True)
+    axes[1].plot(t, iq, "-")
+    axes[1].set_ylabel("IQ [mg/stroke]")
+    axes[1].grid(True)
+    axes[2].plot(t, tq, "-", label="brake")
+    axes[2].plot(t, load, "--", label="load")
+    axes[2].set_ylabel("Torque [Nm]")
+    axes[2].legend()
+    axes[2].grid(True)
+    axes[3].plot(t, p_int, "-")
+    axes[3].set_ylabel("Intake pressure [bar abs]")
+    axes[3].set_xlabel("Time [s]")
+    axes[3].grid(True)
+    fig.tight_layout()
+    path = out_dir / "transient.png"
+    fig.savefig(path, dpi=120)
+    plt.close(fig)
+    print(f"Wrote: {path}")
 
 
 if __name__ == "__main__":

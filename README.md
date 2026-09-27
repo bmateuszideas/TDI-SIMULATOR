@@ -121,9 +121,25 @@ Wyniki:
 
 CI działa na GitHub Actions (Python 3.12) i uruchamia testy z katalogu `tests`.
 
-## Co dalej (kolejne etapy)
+## Tryb transient (MVEM)
 
-- Kolektory i EGR jako stany dynamiczne (zamiast stałych warunków brzegowych).
+Symulacja pracy silnika w czasie: governor PI steruje dawką (IQ), wał korbowy ma bezwładność, dolot podąża za celem boost z opóźnieniem turbo (stała czasowa 1. rzędu). W każdym kroku czasowym liczony jest pełny cykl 720°.
+
+`python -m virtual_tdi --mode transient --rpm 1500 --rpm-start 1450 --rpm-target 1500 --load-torque-nm 80 --load-step-s 3 --transient-end-s 8 --transient-dt-s 0.1 --out out`
+
+Wyniki:
+- `out/transient.csv` (rpm, IQ, moment hamowniczy, obciążenie, moc, p_intake, IMEP, peak pressure w czasie)
+- `out/transient.png` (4 panele: rpm / IQ / momenty / ciśnienie dolotu)
+
+Parametry strojenia: `--gov-kp`, `--gov-ki`, `--inertia-kg-m2`, `--turbo-tau-s`, `--boost-target-bar`.
+
+## Wydajność (backend CoolProp)
+
+Własności CoolProp (cp, cv, gamma, p(rho,T)) są tablicowane na siatce (T, log p) i (T, log rho) przy pierwszym użyciu (budowa ~3 s), potem lookup bilinearny w czystym Pythonie. Pełny cykl 720° z backendem coolprop: ~1 s (wcześniej ~70 s), błąd interpolacji < 0.5%.
+
+## Co dalej (kolejne etapy)
+- Turbo/boost: mapy sprężarki/turbiny + dynamika wałka turbo (obecnie: bilans mocy lub lag 1. rzędu).
+- Warstwa ECU (EDC15): percepcja (czujniki, filtry, opóźnienia) i strojenie.
+- Kalibracja governorów transient na dane pomiarowe.
+
 - VP37 “głębiej”: tłoczek, fala ciśnienia, iglica/dysza, dwie fazy otwarcia.
-- Turbo/boost: solver turbina–kompresor (mapy lub model parametryczny).
-- Warstwa ECU (EDC15) i strojenie.
