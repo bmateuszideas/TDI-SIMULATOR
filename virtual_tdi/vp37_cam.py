@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
-trapezoid = getattr(np, "trapezoid", np.trapz)
+trapezoid = getattr(np, "trapezoid", None) or np.trapezoid if hasattr(np, "trapezoid") else np.trapz
 
 
 @dataclass(frozen=True)

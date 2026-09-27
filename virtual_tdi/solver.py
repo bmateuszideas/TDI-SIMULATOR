@@ -6,7 +6,7 @@ from typing import Any
 
 import numpy as np
 
-trapezoid = getattr(np, "trapezoid", np.trapz)
+trapezoid = getattr(np, "trapezoid", None) or np.trapezoid if hasattr(np, "trapezoid") else np.trapz
 
 from .combustion import CombustionScheduleRuntime, heat_release_rate_dq_dtheta, maybe_arm_combustion
 from .fmep import calculate_fmep_from_config
