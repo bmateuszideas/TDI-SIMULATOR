@@ -7,6 +7,8 @@ from virtual_tdi.cli import _make_argparser
 from virtual_tdi.gui import (
     SETTING_SPECS,
     SETTINGS_DEFAULTS,
+    adjust_settings_for_backends,
+    backend_availability,
     build_cli_args,
     parse_soi_sweep,
     settings_from_json,
@@ -193,6 +195,57 @@ class SettingsJsonTest(unittest.TestCase):
         loaded = settings_from_json(json.dumps({}))
         self.assertEqual(loaded["rpm"], SETTINGS_DEFAULTS()["rpm"])
         self.assertEqual(loaded["mode"], "full")
+
+
+class BackendFallbackTest(unittest.TestCase):
+    def test_all_installed_keeps_settings(self):
+        settings, notes = adjust_settings_for_backends(
+            SETTINGS_DEFAULTS(), {"fluids": True, "coolprop": True}
+        )
+        self.assertEqual(notes, [])
+        self.assertEqual(settings["thermo_backend"], "coolprop")
+        self.assertEqual(settings["flow_backend"], "fluids")
+
+    def test_missing_fluids_downgrades_flow_backend(self):
+        settings, notes = adjust_settings_for_backends(
+            SETTINGS_DEFAULTS(), {"fluids": False, "coolprop": True}
+        )
+        self.assertEqual(settings["flow_backend"], "simple")
+        self.assertTrue(any("fluids" in n for n in notes))
+        self.assertFalse(settings["strict_backends"])
+
+    def test_missing_coolprop_downgrades_thermo_backend(self):
+        settings, notes = adjust_settings_for_backends(
+            SETTINGS_DEFAULTS(), {"fluids": True, "coolprop": False}
+        )
+        self.assertEqual(settings["thermo_backend"], "simple")
+        self.assertTrue(any("CoolProp" in n for n in notes))
+        self.assertFalse(settings["strict_backends"])
+
+    def test_explicit_simple_backends_need_no_strict_change(self):
+        settings = SETTINGS_DEFAULTS()
+        settings["thermo_backend"] = "simple"
+        settings["flow_backend"] = "simple"
+        settings["strict_backends"] = False
+        adjusted, notes = adjust_settings_for_backends(
+            settings, {"fluids": False, "coolprop": False}
+        )
+        self.assertEqual(notes, [])
+
+    def test_adjusted_settings_build_valid_command(self):
+        settings, _ = adjust_settings_for_backends(
+            SETTINGS_DEFAULTS(), {"fluids": False, "coolprop": False}
+        )
+        cmd = build_cli_args(settings)
+        args = CLI_PARSER.parse_args(cmd)
+        self.assertEqual(args.flow_backend, "simple")
+        self.assertEqual(args.thermo_backend, "simple")
+        self.assertFalse(args.strict_backends)
+
+    def test_backend_availability_returns_both_keys(self):
+        availability = backend_availability()
+        self.assertIn("fluids", availability)
+        self.assertIn("coolprop", availability)
 
 
 class SpecCoverageTest(unittest.TestCase):

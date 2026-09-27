@@ -314,6 +314,46 @@ def settings_from_json(text: str) -> dict:
     return result
 
 
+def backend_availability() -> dict[str, bool]:
+    """Pure check: which optional heavy backends are importable."""
+    availability = {}
+    try:
+        import fluids  # noqa: F401
+        availability["fluids"] = True
+    except Exception:
+        availability["fluids"] = False
+    try:
+        import CoolProp  # noqa: F401
+        availability["coolprop"] = True
+    except Exception:
+        availability["coolprop"] = False
+    return availability
+
+
+def adjust_settings_for_backends(
+    settings: dict, availability: dict[str, bool] | None = None
+) -> tuple[dict, list[str]]:
+    """Downgrade backends that are not installed; disable strict mode.
+
+    Returns the adjusted settings copy and a list of human-readable notes
+    (Polish) describing what was changed.
+    """
+    avail = availability if availability is not None else backend_availability()
+    adjusted = dict(settings)
+    notes: list[str] = []
+
+    if not avail.get("coolprop") and str(adjusted.get("thermo_backend")) == "coolprop":
+        adjusted["thermo_backend"] = "simple"
+        notes.append("CoolProp niedost\u0119pny \u2014 thermo backend: simple")
+    if not avail.get("fluids") and str(adjusted.get("flow_backend")) == "fluids":
+        adjusted["flow_backend"] = "simple"
+        notes.append("fluids niedost\u0119pny \u2014 flow backend: simple")
+    if notes and adjusted.get("strict_backends"):
+        adjusted["strict_backends"] = False
+        notes.append("strict backends wy\u0142\u0105czone (fallback dozwolony)")
+    return adjusted, notes
+
+
 def _tk_available() -> bool:
     try:
         import tkinter  # noqa: F401
@@ -652,6 +692,9 @@ class VirtualTdiGui:
     def _build_cmd(self) -> list[str] | None:
         try:
             settings = self._read_widgets_to_settings()
+            settings, notes = adjust_settings_for_backends(settings)
+            for note in notes:
+                self._append(f"Uwaga: {note}.\n")
             return [sys.executable, "-m", "virtual_tdi"] + build_cli_args(settings)
         except ValueError as exc:
             self._append(f"B\u0142\u0105d ustawie\u0144: {exc}\n")
