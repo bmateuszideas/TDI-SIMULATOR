@@ -44,9 +44,13 @@ python -m virtual_tdi --help
 
 ## Run
 
-GUI (prosty panel do uruchamiania symulacji):
+GUI (pełny panel z zakładkami dla wszystkich parametrów CLI — tryby full/closed/transient,
+presety, zapis/wczytywanie konfiguracji JSON, podgląd wyjścia na żywo):
 
 `python -m virtual_tdi gui`
+
+Konfiguracje GUI zapisywane są jako JSON i można je wczytać ponownie w GUI
+(lub przekazać ręcznie przez CLI — GUI pokazuje pełne polecenie w logu przed uruchomieniem).
 
 2) Pełny cykl 720° (gazowymiana + sprężanie + spalanie + rozprężanie + wydech):
 
