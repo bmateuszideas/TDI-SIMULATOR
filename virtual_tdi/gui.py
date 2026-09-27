@@ -400,6 +400,7 @@ class VirtualTdiGui:
 
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=10, pady=8)
+        self._scroll_canvases: list = []
 
         for tab_name, specs in SETTING_SPECS.items():
             tab = ttk.Frame(self.notebook, padding=10)
@@ -417,18 +418,8 @@ class VirtualTdiGui:
                 lambda e, c=canvas, w=canvas_window: c.itemconfigure(w, width=e.width),
             )
 
-            def on_mousewheel(event, c=canvas):
-                try:
-                    if event.num == 4 or event.delta > 0:
-                        c.yview_scroll(-1, "units")
-                    elif event.num == 5 or event.delta < 0:
-                        c.yview_scroll(1, "units")
-                except Exception:
-                    pass
+            self._scroll_canvases.append(canvas)
 
-            canvas.bind_all("<MouseWheel>", lambda e, c=canvas: on_mousewheel(e, c))
-            canvas.bind_all("<Button-4>", lambda e, c=canvas: on_mousewheel(e, c))
-            canvas.bind_all("<Button-5>", lambda e, c=canvas: on_mousewheel(e, c))
             canvas.bind("<Enter>", lambda e, c=canvas: c.focus_set())
             canvas.configure(yscrollcommand=scrollbar.set)
             scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -466,6 +457,23 @@ class VirtualTdiGui:
 
         self.notebook.select(0)
 
+        def scroll_active_canvas(event):
+            try:
+                current_tab = self.notebook.select()
+                for canvas in self._scroll_canvases:
+                    if str(canvas.master) == str(current_tab):
+                        if getattr(event, "num", 0) == 4 or getattr(event, "delta", 0) > 0:
+                            canvas.yview_scroll(-2, "units")
+                        elif getattr(event, "num", 0) == 5 or getattr(event, "delta", 0) < 0:
+                            canvas.yview_scroll(2, "units")
+                        return
+            except Exception:
+                pass
+
+        self.root.bind_all("<MouseWheel>", scroll_active_canvas, add="+")
+        self.root.bind_all("<Button-4>", scroll_active_canvas, add="+")
+        self.root.bind_all("<Button-5>", scroll_active_canvas, add="+")
+
         body = ttk.Frame(self.root, padding=(10, 0, 10, 8))
         body.pack(side=tk.TOP, fill=tk.X)
         runbar = ttk.Frame(body)
@@ -497,16 +505,17 @@ class VirtualTdiGui:
             widget.var = var
             self.combos[name] = widget
         else:
-            widget = ttk.Entry(parent)
             if name in FILE_FIELDS:
                 frame = ttk.Frame(parent)
-                widget.grid(row=0, column=0, sticky="ew")
+                frame.grid_columnconfigure(0, weight=1)
+                entry = ttk.Entry(frame)
+                entry.grid(row=0, column=0, sticky="ew")
                 browse = ttk.Button(frame, text="\u2026", width=3, command=lambda n=name: self._browse_file(n))
-                browse.grid(row=0, column=1, padx=(4, 0))
+                browse.grid(row=0, column=1, padx=(4, 0), sticky="ns")
+                self.entries[name] = entry
                 widget = frame
-                inner_entry = frame.grid_slaves(row=0, column=0)[0]
-                self.entries[name] = inner_entry
             else:
+                widget = ttk.Entry(parent)
                 self.entries[name] = widget
 
         widget.grid(row=row, column=1, sticky="ew", pady=2)
