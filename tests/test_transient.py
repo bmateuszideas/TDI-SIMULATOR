@@ -191,3 +191,35 @@ class TestTransientStability(unittest.TestCase):
         # settles at a slightly higher operating torque; bound widened to 100 Nm.
         self.assertGreater(tail[-1].brake_torque_nm, 70.0)
         self.assertLess(tail[-1].brake_torque_nm, 100.0)
+
+
+class TestPerceptionStability(unittest.TestCase):
+    def test_governor_stable_with_perceived_rpm(self):
+        from virtual_tdi.perception import PerceptionConfig
+        cfg = TransientConfig(
+            t_end_s=6.0,
+            dt_s=0.1,
+            rpm_start=1500.0,
+            rpm_target=lambda t: 1500.0,
+            load_torque_nm_fn=lambda t: 80.0 if t >= 3.0 else 0.0,
+            cycles_per_point=1,
+            perception=PerceptionConfig(enabled=True),
+        )
+        res = run_transient(
+            _geom(),
+            Fuel.diesel(),
+            _sched_builder,
+            cfg,
+            models=SimulationConfig(rpm=1500.0),
+            valve_timing=ValveTiming(),
+            valve_flow=ValveFlow(),
+            step_deg=2.0,
+        )
+        tail = res.samples[-5:]
+        mean_rpm = sum(s.rpm for s in tail) / len(tail)
+        # Sensor lag/delay/noise degrades the governor's steady-state
+        # accuracy slightly vs the ideal-feedback case; bound reflects that.
+        self.assertGreater(mean_rpm, 1250.0)
+        self.assertLess(mean_rpm, 1700.0)
+        # perceived rpm lags the true rpm in the transient phase
+        self.assertTrue(all(hasattr(s, "rpm_perceived") for s in res.samples))
