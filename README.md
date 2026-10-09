@@ -128,7 +128,7 @@ Wyniki:
 - Jeśli masz `Mapa_BOOST___interpolowana_mapa_ci_nienia_do_adowania.csv`, w `metrics.txt` pojawia się `boost_target_mbar_abs` (oraz opcjonalnie `--use-boost-map` ustawia `p_intake` jako ciśnienie absolutne: `boost_target_mbar_abs / 1000` bar abs — mapy boost traktujemy jako ciśnienie absolutne, spójnie w CLI i datasecie).
 - Backendy fizyki: `--thermo-backend coolprop` (domyślny — CoolProp musi być zainstalowany przy `--strict-backends`, patrz quickstart), `--flow-backend fluids` (domyślnie `simple`).
 - Mapy ECU, profil VP37 i profil zaworów są wykrywane względem katalogu bieżącego (CWD) — uruchamiaj z root repo albo podaj ścieżki przez `--soi-map/--n146-map/--vp37-cam/--valve-table`.
-- Ograniczenie modelu: masa paliwa nie jest doliczana do masy ładunku w cylindrze (model śledzi energię paliwa, nie jego masę; niedokładność ~4% masy ładunku przy typowych dawkach).
+- ~~Ograniczenie modelu: masa paliwa nie jest doliczana do masy ładunku~~ — **naprawione** (Faza 2.B.2): spalone paliwo wchodzi do bilansu masy ładunku zsynchronizowane z HRR; termika mieszaniny γ(T,x) z ułamkiem spalin (Faza 2.B.1).
 - Opóźnienie zapłonu: `--ignition-delay arrhenius|fixed_deg` (dla `fixed_deg` ustaw `--ignition-delay-deg`).
 
 ## Tests

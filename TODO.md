@@ -173,12 +173,12 @@
 
 ### 2.B Termika mieszanin
 
-- [ ] **2.B.1 γ(T, x) blend powietrze/spaliny (tanie, pierwsze kroki)**
+- [x] **2.B.1 γ(T, x) blend powietrze/spaliny** — GasModel z burned_fraction (cp offset +110 J/kgK wg Heywood Ch. 3); cylinder: EGR+burnt, wydech: x=1
   - Dziś: CoolProp backend = czyste "Air" — nie mieszanina spalin.
   - Krok 1: liniowy/cp-mixing model γ jako funkcja T i ułamka spalin x.
   - AC: test własności (γ mieszaniny między γ_powietrze a γ_spaliny, poprawny trend z T).
 
-- [ ] **2.B.2 Masa paliwa w bilansie ładunku (usuwa ~4% udokumentowane w README)**
+- [x] **2.B.2 Masa paliwa w bilansie ładunku** — dm_fuel/dθ = dQ/LHV zsynchronizowane z HRR; governor PI re-strojenie (kp 0.10→0.05, ki 0.06→0.03)
   - Dodać masę wtryskniętego paliwa do masy ładunku w Momencie wtrysku (full_cycle).
   - AC: bilans masy zamyka się z paliwem; README sekcja "znane ograniczenia" odchudzona; test.
 

@@ -148,10 +148,11 @@ class InjectionSchedule:
 @dataclass(frozen=True)
 class HeatTransferConfig:
     model: Literal["woschni_simplified"] = "woschni_simplified"
-    # Wall temperatures for multi-zone model
-    head_temp_k: float = 500.0
-    piston_temp_k: float = 550.0
-    liner_temp_k: float = 450.0
+    # Wall temperatures for multi-zone model; defaults match the calibrated
+    # values in engine_reference_sources.yaml (TODO.md Faza 1.B.2).
+    head_temp_k: float = 600.0
+    piston_temp_k: float = 650.0
+    liner_temp_k: float = 550.0
     # Woschni simplified: h = c * B^-0.2 * p_bar^0.8 * T^-0.55 * w^0.8 [W/m^2K]
     # c = 127.93 is the constant for pressure in bar (equivalent to 3.26 with
     # p in kPa), matching docs/sources/SPECYFIKACJA MATEMATYCZNA SOLVERA_ 1.9 TDI COGENERATION ENGINE.md section 5.

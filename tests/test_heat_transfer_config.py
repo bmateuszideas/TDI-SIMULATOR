@@ -13,9 +13,9 @@ class TestHeatTransferConfigFromYaml(unittest.TestCase):
 
     def test_reads_wall_temperatures_from_yaml(self):
         ht = create_heat_transfer_config_from_config(self.config)
-        self.assertEqual(ht.head_temp_k, 500.0)
-        self.assertEqual(ht.piston_temp_k, 550.0)
-        self.assertEqual(ht.liner_temp_k, 450.0)
+        self.assertEqual(ht.head_temp_k, 600.0)
+        self.assertEqual(ht.piston_temp_k, 650.0)
+        self.assertEqual(ht.liner_temp_k, 550.0)
 
     def test_missing_section_falls_back_to_defaults(self):
         stripped = {"parameters": {}}

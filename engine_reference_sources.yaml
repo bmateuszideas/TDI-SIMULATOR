@@ -173,15 +173,15 @@ parameters:
   # ----------------------------------------------------------------------------
   heat_transfer:
     head_wall_temp:
-      value: 500
+      value: 600
       unit: K
-      source: "Estimate (Heywood Ch. 13 typical DI diesel head temperatures). To be calibrated."
+      source: "Calibrated on ALH reference points (TODO.md 1.B.2): 1900/3750 rpm full load + 1500 rpm part load. Heywood Ch. 13 range, upper end (turbocharged DI)."
     piston_wall_temp:
+      value: 650
+      unit: K
+      source: "Calibrated on ALH reference points (TODO.md 1.B.2). Heywood Ch. 13 range, upper end (turbocharged DI)."
+    liner_wall_temp:
       value: 550
       unit: K
-      source: "Estimate (Heywood Ch. 13 typical DI diesel piston temperatures). To be calibrated."
-    liner_wall_temp:
-      value: 450
-      unit: K
-      source: "Estimate (Heywood Ch. 13 typical DI diesel liner temperatures). To be calibrated."
+      source: "Calibrated on ALH reference points (TODO.md 1.B.2). Heywood Ch. 13 range, upper end (turbocharged DI)."
     
