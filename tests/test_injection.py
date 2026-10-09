@@ -3,6 +3,8 @@ from pathlib import Path
 
 import numpy as np
 
+trapezoid = getattr(np, "trapezoid", None) or np.trapezoid if hasattr(np, "trapezoid") else np.trapz
+
 from virtual_tdi.hydraulics import (
     NeedleConfig,
     NozzleConfig,
@@ -54,7 +56,7 @@ class TestInjectionHydraulics(unittest.TestCase):
             omega = 1500.0 * 2.0 * np.pi / 60.0
             theta = res.time_s * omega
             dmdtheta = res.mdot_fuel_kg_s / omega
-            total_mg = float(np.trapezoid(dmdtheta, theta)) * 1e6
+            total_mg = float(trapezoid(dmdtheta, theta)) * 1e6
             self.assertAlmostEqual(total_mg, iq, delta=iq * 1e-3,
                                    msg=f"IQ {iq} mg not conserved")
 

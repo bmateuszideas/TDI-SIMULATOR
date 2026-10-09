@@ -7,6 +7,8 @@ from .models import Fuel
 from .hydraulics import NozzleConfig, VP37HydraulicConfig, NeedleConfig
 from .vp37_cam import VP37CamProfile
 
+trapezoid = getattr(np, "trapezoid", None) or np.trapezoid if hasattr(np, "trapezoid") else np.trapz
+
 @dataclass
 class InjectionLineConfig:
     length_m: float = 0.4
@@ -148,7 +150,7 @@ def solve_injection_hydraulics(
     omega_crank = rpm * 2.0 * pi / 60.0
     theta_rad = time_s * omega_crank
     dmdtheta = results["mdot_fuel_kg_s"] / max(1e-12, omega_crank)
-    injected_mg = float(np.trapezoid(dmdtheta, theta_rad)) * 1e6 if time_s.size > 1 else 0.0
+    injected_mg = float(trapezoid(dmdtheta, theta_rad)) * 1e6 if time_s.size > 1 else 0.0
     if injected_mg > 1e-9 and iq_mg > 0.0:
         results["mdot_fuel_kg_s"] *= (iq_mg / injected_mg)
 
