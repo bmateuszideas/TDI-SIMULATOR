@@ -120,3 +120,16 @@ Kolejny poziom wierności wymagałby danych pomiarowych (P-θ trace, EGT po hamo
 
 Walidacja po zmianach: 3/3 PASS (bez regresji; zmiany nie dotykaja sciezki
 steady-state full cycle).
+
+## 9. Faza 2.C.2 (PID boost) + warsztat tunera
+
+- **2.C.2:** BoostPidConfig (PID na boost error -> komenda ER VNT, anti-windup)
+  w transient z shaft dynamics. Fix krytyczny w bisekcji PR: poza gridem PR mapy
+  przepływ jest klipowany (staly) i bisekcja blednie konwergowala do 4.5;
+  przeszukiwanie ograniczone do gridu, przypadki choke/surge obsluzone jawnie.
+- **Warsztat tunera (cel nadrzedny projektu):** `python -m virtual_tdi compare`
+  — porownanie wariantow (nozzle/soi/boost/fuel) na jednym punkcie pracy,
+  tabela metryk. Fizyka uczciwa: przy stalej IQ zmiana koncowki zmienia
+  rate/fazowanie wtrysku, nie mase (bilans paliwa).
+
+Walidacja: 3/3 PASS bez regresji; testy 126 OK.
