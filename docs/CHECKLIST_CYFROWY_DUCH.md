@@ -40,5 +40,6 @@ Full-chem nie jest wymagany.
 - [ ] `specs_with_sources.md`: uzupelnione parametry i zrodla
 
 ## Walidacja i testy
-- [ ] Zestawy porownawcze: P-theta, IMEP, EGT, BSFC
+- [x] Zestawy porownawcze: P-theta, IMEP, EGT, BSFC (validation/reference_points.yaml + `python -m virtual_tdi validate`)
 - [ ] Testy regresyjne dla nowych modeli (kolektory, sciany, hydraulika)
+- [x] Testy trendow IMEP/EGT/BSFC (tests/test_validation_trends.py)

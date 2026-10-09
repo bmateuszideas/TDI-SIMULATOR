@@ -17,6 +17,7 @@ derived from the SI value and are listed explicitly below.
 | `indicated_torque_nm` | N·m | Indicated torque (per engine). |
 | `brake_torque_nm_est` | N·m | Estimated brake torque (can be negative at zero/low fuel). |
 | `brake_power_kw_est` | kW | Estimated brake power. |
+| `bsfc_g_per_kwh` | g/kWh | Brake-specific fuel consumption (0 if brake power ~ 0). |
 | `mass_start_kg_per_cyl` | kg | Cylinder mass at cycle start. |
 | `mass_end_kg_per_cyl` | kg | Cylinder mass at cycle end. |
 | `m_air_in_kg_per_cyl` | kg | Total intake air mass over the cycle. |

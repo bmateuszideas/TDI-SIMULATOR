@@ -207,9 +207,14 @@ class SimulationConfig:
     scipy_max_step_deg: float = 1.0
     # Friction loss model for reporting (not fed back into cylinder dynamics).
     # FMEP_bar = A + B * (rpm / 1000) + C * Pmax_bar
+    # FMEP = A + B*(rpm/1000) + C*Pmax_bar [bar].
+    # A: baseline rubbing+auxiliary losses; B: speed term (Heywood Ch. 13
+    # empirical FMEP vs speed for DI diesels); C: load term via peak pressure
+    # (Millington-Hartles style). Initial calibration values; refine on
+    # reference points in TODO.md Faza 1 (docs/validation_report.md).
     fmep_a_bar: float = 1.0
-    fmep_b_bar_per_krpm: float = 0.0
-    fmep_c_bar_per_bar: float = 0.0
+    fmep_b_bar_per_krpm: float = 0.12
+    fmep_c_bar_per_bar: float = 0.02
 
 
 @dataclass
