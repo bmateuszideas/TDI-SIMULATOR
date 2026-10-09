@@ -118,6 +118,27 @@ def _make_argparser() -> argparse.ArgumentParser:
         help="Deprecated: fixed FMEP [bar]. Use --fmep-a-bar/--fmep-b-bar-per-krpm/--fmep-c-bar-per-bar.",
     )
     p.add_argument(
+        "--egr-fraction",
+        type=float,
+        default=None,
+        help="Override intake manifold EGR fraction (0..1). Fault injection: "
+             "egr-stuck-open ~= 0.3, factory idle ~0.07-0.3.",
+    )
+    p.add_argument(
+        "--boost-leak-frac",
+        type=float,
+        default=0.0,
+        help="Boost leak: fraction of intake pressure lost to atmosphere "
+             "(physical pressure drop; 0.1 = ~10% leak).",
+    )
+    p.add_argument(
+        "--maf-underread-frac",
+        type=float,
+        default=0.0,
+        help="MAF sensor underread fraction (0..1): the ECU smoke-limits IQ "
+             "on the (wrong, low) airflow reading.",
+    )
+    p.add_argument(
         "--wall-temp-head-k",
         type=float,
         default=None,
@@ -528,6 +549,10 @@ def main(argv: list[str] | None = None) -> int:
         maf = 850.0
         if egr_map is not None:
             maf = float(egr_map.maf_target(args.rpm, float(iq_cmd)))
+        if args.maf_underread_frac > 0.0:
+            # Fault injection: the G70 sensor underreads; the ECU smoke-limits
+            # the IQ on the wrong (low) airflow (docs/DIAGNOSTYKA_VCDS.md).
+            maf = maf * max(0.0, 1.0 - float(args.maf_underread_frac))
 
         smoke_iq_max = None
         if smoke_map is not None:
@@ -678,17 +703,29 @@ def main(argv: list[str] | None = None) -> int:
             ecu = ecu_derive(fuel_mg) if args.ecu != "off" else {"iq_eff_mg_per_stroke": fuel_mg}
             iq_eff = float(ecu["iq_eff_mg_per_stroke"])
             
+            p_intake_initial_pa = args.p_intake_bar * 1e5
+            if args.boost_leak_frac > 0.0:
+                # Physical boost leak: a fraction of the manifold pressure above
+                # atmosphere is lost (leak to ambient), applied to the initial
+                # state and (via coupling ceiling) to the achieved boost.
+                p_intake_initial_pa = 1.0e5 + (p_intake_initial_pa - 1.0e5) * max(0.0, 1.0 - float(args.boost_leak_frac))
+            egr_frac_override = float(args.egr_fraction) if args.egr_fraction is not None else None
             intake_manifold_config = ManifoldConfig(
                 volume_m3=manifold_configs["intake"].volume_m3,
                 initial_temp_k=args.t_intake_k,
-                initial_pressure_pa=args.p_intake_bar * 1e5,
+                initial_pressure_pa=p_intake_initial_pa,
+                initial_egr_fraction=(egr_frac_override if egr_frac_override is not None
+                                       else manifold_configs["intake"].initial_egr_fraction),
             )
             if args.use_boost_map and ecu.get("boost_target_mbar_abs"):
                 boost_abs_pa = float(ecu["boost_target_mbar_abs"]) * 100.0
+                if args.boost_leak_frac > 0.0:
+                    boost_abs_pa = 1.0e5 + (boost_abs_pa - 1.0e5) * max(0.0, 1.0 - float(args.boost_leak_frac))
                 intake_manifold_config = ManifoldConfig(
                     volume_m3=intake_manifold_config.volume_m3,
                     initial_temp_k=intake_manifold_config.initial_temp_k,
                     initial_pressure_pa=boost_abs_pa,
+                    initial_egr_fraction=intake_manifold_config.initial_egr_fraction,
                 )
 
             exhaust_manifold_config = ManifoldConfig(
@@ -792,6 +829,8 @@ def main(argv: list[str] | None = None) -> int:
                     # commanded intake pressure at (rpm, iq).
                     boost_ceiling_pa = float(boost_map.map_target_mbar(
                         args.rpm, iq_eff)) * 100.0
+                if args.boost_leak_frac > 0.0 and boost_ceiling_pa is not None:
+                    boost_ceiling_pa = 1.0e5 + (boost_ceiling_pa - 1.0e5) * max(0.0, 1.0 - float(args.boost_leak_frac))
                 coupled = simulate_coupled_turbo_map(
                     geom, fuel, schedule_built, cfg_full, turbo_cfg,
                     TurboMapModel.from_yaml(), iterations=max(1, int(args.turbo_iters)),
