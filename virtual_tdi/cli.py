@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import sys
+from math import pi
 from pathlib import Path
 
 import numpy as np
@@ -549,9 +550,29 @@ def main(argv: list[str] | None = None) -> int:
         pilot_fraction = base_schedule.pilot_fraction
         if args.pilot_model == "hydraulic":
             if cam is None: raise SystemExit("--pilot-model hydraulic requires --vp37-cam to exist.")
-            nozzle = NozzleConfig(...)
-            hyd = VP37HydraulicConfig(...)
-            pilot_fraction = estimate_pilot_ratio(...)
+            nozzle = NozzleConfig(
+                diameter_mm=float(args.nozzle_diameter_mm),
+                holes=int(args.nozzle_holes),
+                discharge_coeff=float(args.nozzle_cd),
+                pilot_open_bar=float(args.nozzle_pilot_open_bar),
+                main_open_bar=float(args.nozzle_main_open_bar),
+                pilot_area_frac=float(args.nozzle_pilot_area_frac),
+            )
+            hyd = VP37HydraulicConfig(
+                plunger_diameter_mm=float(args.plunger_diameter_mm),
+                chamber_volume_mm3=float(args.chamber_volume_mm3),
+                line_volume_mm3=float(args.line_volume_mm3),
+                back_pressure_bar=float(args.back_pressure_bar),
+            )
+            pilot_fraction = estimate_pilot_ratio(
+                cam,
+                rpm=args.rpm,
+                duration_main_deg=float(duration_main),
+                fuel=fuel,
+                nozzle=nozzle,
+                hyd=hyd,
+                cylinder=int(args.cyl),
+            )
 
         schedule = InjectionSchedule(
             soi_pilot_deg=soi_pilot, soi_main_deg=soi_main, pilot_fraction=float(pilot_fraction),
@@ -617,7 +638,8 @@ def main(argv: list[str] | None = None) -> int:
 
     else: # Full cycle mode
         valve_timing = ValveTiming(ivo_deg=args.ivo, ivc_deg=args.ivc, evo_deg=args.evo, evc_deg=args.evc)
-        valve_flow = ValveFlow()
+        if valve_flow is None:
+            valve_flow = ValveFlow()
         valve_table = ValveLiftTable.from_markdown(args.valve_table) if args.valve_table and args.valve_table.exists() else None
 
         def run_full(fuel_mg: float):
@@ -834,7 +856,7 @@ def _run_transient_mode(args, geom, fuel, cam, build_schedule, make_combustion_c
         cycles_per_point=1,
     )
     models = SimulationConfig(
-        rpm=rpm_target,
+        rpm=rpm_start,  # per-step rpm is substituted inside run_transient
         step_deg=args.step_deg,
         fuel_mg_per_cycle_per_cyl=float(args.fuel_mg),
         combustion=make_combustion_config(args.hrr_model if args.hrr_model != "auto" else "wiebe"),

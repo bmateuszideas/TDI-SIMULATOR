@@ -28,6 +28,7 @@ derived from the SI value and are listed explicitly below.
 | `fuel_energy_in_j_per_cyl` | J | Fuel chemical energy input. |
 | `q_comb_j_per_cyl` | J | Integrated combustion heat release. |
 | `q_wall_j_per_cyl` | J | Integrated wall heat loss. |
+| `exhaust_power_kw_est` | kW | Exhaust enthalpy power available to a turbine (per engine). |
 | `iq_cmd_mg_per_stroke` | mg | Commanded fuel quantity per stroke. |
 | `iq_mg_per_stroke` | mg | Fuel quantity per stroke after ECU limiting. |
 | `iq_eff_mg_per_stroke` | mg | Effective fuel quantity entering the cylinder model. |

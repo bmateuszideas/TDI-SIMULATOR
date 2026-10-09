@@ -153,17 +153,17 @@ parameters:
       unit: g
       source: "Calculated"
     
-      # ----------------------------------------------------------------------------
-      # MANIFOLDS (0D Control Volumes)
-      # Initial estimates for intake/exhaust runner volumes.
-      # ----------------------------------------------------------------------------
-      manifolds:
-        intake_volume:
-          value: 2.0
-          unit: L
-          source: "Placeholder estimate. To be verified/updated in Milestone M2 (Manifolds)."
-        exhaust_volume:
-          value: 1.5
-          unit: L
-          source: "Placeholder estimate. To be verified/updated in Milestone M2 (Manifolds)."
+  # ----------------------------------------------------------------------------
+  # MANIFOLDS (0D Control Volumes)
+  # Initial estimates for intake/exhaust runner volumes.
+  # ----------------------------------------------------------------------------
+  manifolds:
+    intake_volume:
+      value: 2.0
+      unit: L
+      source: "Placeholder estimate. To be verified/updated in Milestone M2 (Manifolds)."
+    exhaust_volume:
+      value: 1.5
+      unit: L
+      source: "Placeholder estimate. To be verified/updated in Milestone M2 (Manifolds)."
     

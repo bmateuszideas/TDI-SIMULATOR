@@ -265,7 +265,8 @@ def generate_dataset(
 
         p_intake_bar = float(rng.uniform(cfg.p_intake_bar_min, cfg.p_intake_bar_max))
         if cfg.use_boost_map and boost_target_mbar is not None:
-            p_intake_bar = boost_target_mbar / 1000.0 - float(cfg.p_amb_bar)
+            # Boost map target is absolute pressure (same semantics as cli.py).
+            p_intake_bar = boost_target_mbar / 1000.0
             p_intake_bar = max(0.01, p_intake_bar)
 
         boundaries = BoundaryConditions(
