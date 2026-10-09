@@ -1,5 +1,23 @@
 # Raport: ujemny IMEP i katalog modulow
 
+> **UWAGA (aktualizacja 2026-10-09):** Ten raport ma charakter **historyczny**.
+> Czesc opisanych tu poprawek zostala juz wdrozona w kodzie, a czesc opisow
+> nie odpowiada aktualnemu stanowi projektu. Stan obecny:
+>
+> - **Zaimplementowane:** sanity cap na opoznienie zaplonu
+>   (`ignition_delay_max_deg`, domyslnie 40 deg) oraz metryki diagnostyczne
+>   `soc_pilot_deg_model`, `soc_main_deg_model`, `ign_delay_pilot_deg`,
+>   `ign_delay_main_deg`, `ign_delay_*_capped` w `metrics.txt` (patrz
+>   `virtual_tdi/combustion.py`, `virtual_tdi/full_cycle.py`).
+> - **Nie istnieja w kodzie (opisy nizej sa nieaktualne):** BSFC, rod force,
+>   analiza wrazliwosci numdifftools (usunieta w PR #11), integrator SciPy
+>   w `full_cycle` (SciPy jest tylko w solverze closed cycle),
+>   korekty SOI od temperatur paliwa/cieczy, `residual_frac`,
+>   `charge_temp_offset_k`, `wall_temp_k` jako pola konfiguracji.
+> - Katalog modulow w sekcji 2 odzwierciedla stan z czasu pisania raportu;
+>   aktualne moduly: patrz `virtual_tdi/` i `docs/IO_CONTRACT.md`.
+
+
 ## 1) Problem z ujemnym momentem (IMEP < 0) - diagnoza
 
 ### Objawy z logu

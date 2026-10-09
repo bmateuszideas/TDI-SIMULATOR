@@ -101,6 +101,10 @@ class FullCycleConfig:
                 ),
             )
 
+        # Legacy behavior: ambient defaults are derived from the intake
+        # boundary when left at their dataclass defaults (1 bar / 300 K).
+        # Pass p_ambient_pa/t_ambient_k different from these values to pin
+        # the ambient explicitly (used by wall heat loss and enthalpy power).
         if self.p_ambient_pa == 1.0e5 and self.t_ambient_k == 300.0:
             object.__setattr__(self, "p_ambient_pa", boundaries.intake_pressure_pa)
             object.__setattr__(self, "t_ambient_k", boundaries.intake_temp_k)
@@ -143,6 +147,25 @@ def _rk4_step(theta_rad: float, state: np.ndarray, *, step_rad: float, deriv) ->
     k3 = deriv(theta_rad + 0.5 * step_rad, state + 0.5 * step_rad * k2)
     k4 = deriv(theta_rad + step_rad, state + step_rad * k3)
     return state + (step_rad / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+
+
+def _soc_deg(runtime, which: str, schedule) -> float | None:
+    if runtime is None:
+        return None
+    soc_rad = runtime.pilot_soc_rad if which == "pilot" else runtime.main_soc_rad
+    return None if soc_rad is None else soc_rad / DEG2RAD
+
+
+def _delay_deg(runtime, which: str) -> float | None:
+    if runtime is None:
+        return None
+    return runtime.ign_delay_pilot_deg if which == "pilot" else runtime.ign_delay_main_deg
+
+
+def _capped(runtime, which: str) -> bool:
+    if runtime is None:
+        return False
+    return runtime.ign_delay_pilot_capped if which == "pilot" else runtime.ign_delay_main_capped
 
 
 def simulate_full_cycle(
@@ -192,6 +215,8 @@ def simulate_full_cycle(
             iq_mg_per_stroke=cfg.fuel_mg_per_cycle_per_cyl, cylinder=cyl,
             iq_max_mg=cfg.vp37_iq_max_mg, delivery_start_frac=cfg.vp37_delivery_start_frac, samples=250,
         )
+
+    last_runtime_holder: list = [None]
 
     def run_one_cycle(init_state: np.ndarray):
         results = {
@@ -277,6 +302,7 @@ def simulate_full_cycle(
                 state[[1, 4, 7]] = np.clip(state[[1, 4, 7]], cfg.t_min_k, cfg.t_max_k) # Clip temperatures
                 state[[2, 5, 8]] = np.clip(state[[2, 5, 8]], 0.0, 1.0)
 
+        last_runtime_holder[0] = runtime
         return results, state
 
     def _deriv_func(theta_r, state_vec, rt):
@@ -507,6 +533,12 @@ def simulate_full_cycle(
         "m_air_in_kg_per_cyl": np.sum(np.clip(results["mdot_in"], 0.0, None) * dt),
         "m_exhaust_out_kg_per_cyl": np.sum(np.clip(-results["mdot_ex"], 0.0, None) * dt),
         "exhaust_power_kw_est": exhaust_power_kw_est,
+        "soc_pilot_deg_model": _soc_deg(last_runtime_holder[0], "pilot", schedule),
+        "soc_main_deg_model": _soc_deg(last_runtime_holder[0], "main", schedule),
+        "ign_delay_pilot_deg": _delay_deg(last_runtime_holder[0], "pilot"),
+        "ign_delay_main_deg": _delay_deg(last_runtime_holder[0], "main"),
+        "ign_delay_pilot_capped": _capped(last_runtime_holder[0], "pilot"),
+        "ign_delay_main_capped": _capped(last_runtime_holder[0], "main"),
         "p_intake_mean_pa": np.mean(results["p_intake"]),
         "t_intake_mean_k": np.mean(results["t_intake"]),
         "p_exhaust_mean_pa": np.mean(results["p_exhaust"]),

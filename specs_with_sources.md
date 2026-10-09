@@ -14,7 +14,7 @@ This document provides all physical and geometric parameters of the ALH engine, 
 | Crank radius (Stroke / 2)        | 47.75    | mm     | 🔧 PM (Calculated)                  |
 | Connecting rod length            | 144      | mm     | 🧪 DAT (Mahle), 📖 ETKA             |
 | Cylinder offset (Desaxage)       | 0.5      | mm     | ⚙️ CAD models EA827, Internal Docs (`engine_reference_sources.yaml`, `kompletna_lista_z_danymi_rozszerzona.md`)          |
-| Piston pin diameter              | 20       | mm     | 🧪 DAT (Mahle 030 107 065)          |
+| Piston pin diameter              | 26       | mm     | kompletna_lista_z_danymi_SCALONA.md (poprzednio 20 mm - niespojnosc; 26 mm kanoniczne wg dokumentacji zrodlowej) |
 | Piston pin length                | 58       | mm     | 🧪 DAT, 🔧 PM                       |
 
 ---
