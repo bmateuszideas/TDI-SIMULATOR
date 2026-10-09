@@ -1,5 +1,8 @@
 # Bazowa konfiguracja (mapy ECU i osprzęt)
 
+> Pełne konwencje osi/jednostek/logiki każdej mapy: patrz
+> `docs/MAPY_ECU_KONWENCJE.md` (kanon ustalony z właścicielem repo).
+
 Ten projekt używa kilku map ECU (SOI, N146, SmokeLimiter, EGR, Boost). Te mapy są “fabryczne”, ale **nie są uniwersalne** – zakładają konkretną konfigurację hardware.
 
 ## Mapy w repo
@@ -54,9 +57,9 @@ Audyt osi `Mapa_BOOST___interpolowana_mapa_ci_nienia_do_adowania.csv`:
   to ~36.5 mg). Prawdopodobny błąd źródła (może miało być `4500`→45 mg albo `850`→8.5 mg).
 - Dodatkowo ostatni wiersz ma RPM `21` — ewidentna anomalia danych źródłowych.
 
-Decyzja: pliku źródłowego **nie modyfikujemy** (to dane referencyjne); parser
-ostrzega (`UserWarning`) przy wartościach osi IQ > 60 mg/suw i jest to świadomy
-safety-net. Punkty z anomalous axis leżą poza obszarem roboczym map (IQ ≤ ~36.5,
-RPM 900–5000), więc nie wpływają na wyniki w normalnym użyciu.
-Jeśli pojawi się oryginalne źródło mapy, kolumnę `8500` i wiersz `21` należy
-poprawić u źródła.
+**Aktualizacja (po ustaleniach z właścicielem, patrz MAPY_ECU_KONWENCJE.md):**
+nagłówek BOOST miał błąd rzędu wielkości z OCR (kolumny 2000–4000 = 20–40 mg/suw,
+ostatnia 8500 = 45 mg/suw). Plik został poprawiony u źródła (dzielenie nagłówka
+przez 100 dla wartości ≥ 200). Wiersz RPM 21 to artefakt eksportu, pozostaje
+(jest poza obszarem roboczym; interpolacja go nie używa). Heurystyka ×100
+w parserze została usunięta — jednostki są teraz jawne w pliku.
