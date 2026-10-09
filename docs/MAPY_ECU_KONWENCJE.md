@@ -11,6 +11,32 @@ Wspólna konwencja plików:
 - Komórki = wartość mapy dla (RPM, IQ).
 - Pliki "interpolowane" = oryginalne mapy ECU przeinterpolowane na siatkę
   regularną.
+- **"mg/suw" w mapach = masa NA JEDEN CYLINDER NA SUW (cykl)** — taka sama
+  konwencja jak metryka `m_air_in_kg_per_cyl` w symulatorze.
+
+## Fizyczne podstawy skali (pełny ładunek cylindra)
+
+Silnik ssie stałą objętość na suw (pojemność skokowa cylindra, 471 cm³).
+Masa powietrza bez EGR = V × rho:
+
+| Warunek dolotu | Masa powietrza [mg/cyl/suw] |
+|---|---|
+| 1.0 bar abs, 293 K (NA) | ~567 |
+| 1.5 bar abs, 293 K | ~851 |
+| 1.8 bar abs, 320 K (po intercoolerze) | ~925 |
+
+Górna granica osi MAF SmokeLimitera (**853 mg/suw**) = pełny cylinder przy
+nominalnym doładowaniu ~1.5 bar abs — potwierdzenie konwencji.
+
+## Hierarchia ECU (kanon wg właściciela)
+
+```
+MAF (mapa EGR / pomiar) → SmokeLimiter: max IQ dla tego MAF → IQ = min(zadane, limit)
+```
+
+- **Smoke limiter jest nadrzędny**: EGR zmienia dostępne powietrze (np. mapa
+  EGR ustawi 300 mg/suw), a limiter pozwoli tylko IQ dozwoloną dla 300 mg
+  powietrza. EGR nie zmienia paliwa — tylko odcina górny sufit dawki.
 
 ## 1. SOI — "Mapa Kąta Początku Wtrysku (SOI)... Table 1.csv"
 
