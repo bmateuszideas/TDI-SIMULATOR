@@ -1,0 +1,41 @@
+# Compressor map: Garrett VNT15 / GT1749V family (as fitted to VW 1.9 TDI ALH).
+# Speed lines [rpm], columns: PR; cells: corrected mass flow [kg/s].
+# Source: digitized/estimated from published Garrett GT1749V compressor maps
+# (public domain dyno community data, e.g. TDIClub; values are engineering
+# estimates suitable for 0D coupling - see docs/BASELINE_MAPY_ECU_I_OSPRZET.md).
+# Efficiency map: speed x PR -> isentropic efficiency [-].
+speed_rpm: [60000, 90000, 120000, 150000, 180000, 210000]
+
+corrected_mass_kg_s:
+  # rows = speed lines (same order as speed_rpm), cols = PR below
+  pr_grid: [1.2, 1.5, 1.8, 2.2, 2.6, 3.0]
+  values:
+    # At constant shaft speed, higher PR -> lower swallowed flow (compressor map physics).
+    - [0.053, 0.042, 0.035, 0.028, 0.022, 0.018]   # 60k
+    - [0.094, 0.078, 0.065, 0.052, 0.041, 0.033]   # 90k
+    - [0.133, 0.112, 0.095, 0.078, 0.064, 0.052]   # 120k
+    - [0.172, 0.148, 0.127, 0.106, 0.089, 0.074]   # 150k
+    - [0.210, 0.182, 0.158, 0.134, 0.114, 0.096]   # 180k
+    - [0.245, 0.214, 0.187, 0.161, 0.139, 0.120]   # 210k
+
+efficiency:
+  pr_grid: [1.2, 1.5, 1.8, 2.2, 2.6, 3.0]
+  values:
+    - [0.62, 0.68, 0.70, 0.66, 0.58, 0.50]   # 60k
+    - [0.66, 0.73, 0.76, 0.74, 0.68, 0.60]   # 90k
+    - [0.64, 0.74, 0.78, 0.78, 0.74, 0.67]   # 120k
+    - [0.60, 0.71, 0.76, 0.79, 0.77, 0.72]   # 150k
+    - [0.55, 0.66, 0.73, 0.76, 0.75, 0.71]   # 180k
+    - [0.50, 0.61, 0.68, 0.72, 0.72, 0.68]   # 210k
+
+turbine:
+  # Turbine map: expansion ratio (p_turbine_in/p_turbine_out) -> efficiency [-].
+  # Swallowed mass flow grows with ER; simplified single-speed family.
+  er_grid: [1.1, 1.3, 1.5, 1.8, 2.2, 2.6, 3.0]
+  efficiency: [0.55, 0.66, 0.70, 0.72, 0.70, 0.66, 0.60]
+  mass_flow_factor_kg_s_per_er: 0.048   # mdot_t = factor * ER * f(speed) approximate
+
+notes: >-
+  These maps are engineering estimates for 0D coupling (TODO.md Faza 2.A).
+  If an official Garrett map becomes available, replace the values here;
+  the parser and model code do not change.

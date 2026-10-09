@@ -29,7 +29,7 @@ Full-chem nie jest wymagany.
 - [ ] Sterowanie jako petle regulacji (nie tylko mapy)
 
 ## Turbo
-- [x] `virtual_tdi/turbo.py`: mapy sprezarki/turbiny lub model parametryczny
+- [x] `virtual_tdi/turbo.py` + `virtual_tdi/turbo_map.py`: mapy sprezarki/turbiny (Faza 2.A)
 - [ ] `virtual_tdi/coupled.py`: dynamika turbo zamiast jednego bilansu
 
 ## Dane i zrodla

@@ -160,12 +160,12 @@
 
 ### 2.A Turbo (M5 — największa dziura dzisiejszego modelu)
 
-- [ ] **2.A.1 Mapy sprężarki/turbiny zamiast stałych sprawności**
+- [x] **2.A.1 Mapy sprężarki/turbiny zamiast stałych sprawności** — turbo_map_gt1749v.yaml + virtual_tdi/turbo_map.py (bilinear, clipping); `--turbo` podpięte do CLI (było martwą flagą!); fix krytyczny: coupling nie przekazywał fuel_mg do iteracji
   - Źródło map: publikowane mapy K03 (ALH ma K03) — GT-Power/producent/literatura.
   - Format: klasa 2D podobna do `edc_maps.py` (interpolacja + clipping do choke/surge).
   - AC: `--turbo` używa map; test na 2–3 znanych punktach map (PR/eff na krawędziach zakresu).
 
-- [ ] **2.A.2 Dynamika wałka turbo**
+- [x] **2.A.2 Dynamika wałka turbo**
   - Bilans momentu bezwładności: `dω/dt = (P_t − P_c)/(J·ω)`.
   - Zastąpić iteracyjną relaksację (`turbo-iters`) prawdziwą dynamiką w trybie transient
     (dziś: lag 1. rzędu na p_intake — lepsze, ale nie sprzężone z masą wałka).

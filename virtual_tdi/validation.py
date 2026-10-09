@@ -67,9 +67,15 @@ def run_point(point: dict, *, workdir: Path, verbose: bool = False) -> dict:
         "--no-plot",
         "--thermo-backend", "simple",
         "--integrator", "rk4",
+        # Multi-cycle: the first cycle charges the dynamic manifolds from the
+        # assumed initial state; steady-state metrics need >= 2 cycles.
+        "--cycles", str(int(point.get("cycles", 2))),
     ]
+    if point.get("soi_offset_deg") is not None:
+        cmd += ["--soi-offset-deg", str(point["soi_offset_deg"])]
     if point.get("turbo"):
-        cmd += ["--turbo", "--turbo-iters", "8"]
+        cmd += ["--turbo", "--turbo-iters", str(int(point.get("turbo_iters", 12))),
+                "--turbo-relax", "0.6", "--turbo-pr-max", "2.0"]
     proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
     if proc.returncode != 0:
         raise RuntimeError(f"Point {name}: CLI failed: {proc.stderr.strip()[-400:]}")
@@ -92,9 +98,6 @@ def run_point(point: dict, *, workdir: Path, verbose: bool = False) -> dict:
     passed = all(c["status"] == "PASS" for c in checks)
     row = {"name": name, "rpm": point["rpm"], "checks": checks, "passed": passed,
            "known_gap": point.get("known_gap")}
-    if verbose and point.get("known_gap"):
-        print(f"    [known_gap] {point['known_gap']}: reference target reflects hardware "
-              f"behavior the model does not yet capture; failure here is expected until TODO.md Faza 2.A")
     if verbose:
         print(f"[{name}] rpm={point['rpm']} -> {'PASS' if passed else 'FAIL'}")
         for c in checks:

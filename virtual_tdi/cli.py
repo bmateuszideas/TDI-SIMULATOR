@@ -15,7 +15,7 @@ from .config_loader import (
     create_valve_flow_from_config,
 )
 from .controller import solve_monotone_bisect
-from .coupled import simulate_coupled_turbo
+from .coupled import simulate_coupled_turbo, simulate_coupled_turbo_map
 from .edc_maps import BoostTargetMap2D, EGRMafTargetMap2D, SmokeLimiterMap2D
 from .full_cycle import FullCycleConfig, simulate_full_cycle
 from .hydraulics import NozzleConfig, VP37HydraulicConfig, NeedleConfig, estimate_pilot_ratio
@@ -740,7 +740,28 @@ def main(argv: list[str] | None = None) -> int:
                 models=models,
             )
             
-            res = simulate_full_cycle(geom, fuel, build_schedule(fuel_mg=fuel_mg), cfg_full)
+            schedule_built = build_schedule(fuel_mg=fuel_mg)
+            if args.turbo:
+                from .turbo import TurboConfig
+                from .turbo_map import TurboMapModel
+                turbo_cfg = TurboConfig(
+                    eta_turbine=float(args.turbo_eta_t),
+                    eta_comp=float(args.turbo_eta_c),
+                    eta_mech=float(args.turbo_eta_mech),
+                    pr_max=float(args.turbo_pr_max),
+                    p_amb_pa=args.p_amb_bar * 1e5,
+                    t_amb_k=args.t_intake_k,
+                    relax=float(args.turbo_relax),
+                )
+                coupled = simulate_coupled_turbo_map(
+                    geom, fuel, schedule_built, cfg_full, turbo_cfg,
+                    TurboMapModel.from_yaml(), iterations=max(1, int(args.turbo_iters)),
+                )
+                res = coupled.result
+                annotate_metrics(res.metrics, fuel_mg=fuel_mg)
+                res.metrics["turbo_shaft_rpm"] = coupled.history[-1]["shaft_rpm"]
+                return res
+            res = simulate_full_cycle(geom, fuel, schedule_built, cfg_full)
             annotate_metrics(res.metrics, fuel_mg=fuel_mg)
             return res
 

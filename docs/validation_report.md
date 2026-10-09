@@ -61,3 +61,23 @@ porównanie metryk symulacji z danymi referencyjnymi ALH 90 PS
 1. Faza 2.A (TODO.md): mapy sprężarki/turbiny K03 + dynamika wałka.
 2. Po 2.A: ponowna walidacja full-load, potem kalibracja `w_mult`/ścian.
 3. Faza 2.B: masa paliwa w bilansie ładunku, γ(T,x).
+
+## 6. Aktualizacja po Fazie 2.A (turbo maps)
+
+Po implementacji map sprężarki/turbiny (`virtual_tdi/turbo_map.py`,
+`validation/turbo_map_gt1749v.yaml`) i podpięciu `--turbo` do CLI:
+
+| Punkt | Przed 2.A | Po 2.A |
+|---|---|---|
+| `part_load_cruise` | PASS | PASS |
+| `full_load_peak_torque` | FAIL (torque −53%, p_intake 0.94 bar) | **PASS** (torque −9%, p_intake 1.88 bar, shaft 72k rpm) |
+| `full_load_rated_power` | FAIL (power −57%) | FAIL (power −12.6%, tuż poza tolerancją 12%) |
+
+Dodatkowo znaleziono i naprawiono **błąd krytyczny**: `simulate_coupled_turbo`
+nie przekazywał `fuel_mg_per_cycle_per_cyl` ani `injection_profile` do wewnętrznych
+iteracji — każda iteracja turbo liczyła cykl z domyślną dawką 20 mg zamiast
+komendowanej. To unieważnia wszystkie wcześniejsze wyniki `--turbo`.
+
+Pozostały deficyt rated power (−12.6%): p_intake 1.76 bar (realny ~1.9-2.0),
+q_wall ~13% energii. Kandydaci: kalibracja w_mult/ścian (1.B.2), dokładniejsza
+mapa VNT (section 2.6 w TODO.md - jeśli pojawi się oficjalna mapa Garrett).
