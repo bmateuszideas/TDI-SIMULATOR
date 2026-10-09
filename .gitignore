@@ -25,12 +25,7 @@ dist/
 out/
 out_*/
 *.log
-# Generated CSV/PNG are ignored EXCEPT factory maps and tracked source data
-*.csv
-!Mapa*.csv
-!SmokeLimiter*.csv
-!skok_tloczka_vp37*.csv
-*.png
+
 
 # IDE / editor
 .vscode/
