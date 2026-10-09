@@ -129,7 +129,7 @@ def _make_argparser() -> argparse.ArgumentParser:
         type=float,
         default=0.0,
         help="Boost leak: fraction of intake pressure lost to atmosphere "
-             "(physical pressure drop; 0.1 = ~10% leak).",
+             "(physical pressure drop; 0.1 = ~10%% leak).",
     )
     p.add_argument(
         "--maf-underread-frac",
