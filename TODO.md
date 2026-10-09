@@ -212,6 +212,13 @@
 
 ---
 
+## Walidacja map-driven (obszar roboczy ECU)
+
+- [x] Siatka punktow z map ECU (RPM x IQ, limit SmokeLimitera jako gorna dawka)
+- [x] Feedforward z fabrycznej mapy BOOST jako sufit couplingu turbo (`boost_ceiling_pa`)
+- [x] `python -m virtual_tdi validate --map-grid` — 12/12 PASS (odchyly -2 do -14%)
+- [ ] (gdy poprawny plik EGR) walidacja MAF z mapy EGR na tej samej siatce
+
 ## Kryteria zgodności z manifestem (check na koniec każdej fazy)
 
 - Brak "magicznych" parametrów bez źródła → po Fazie 0: audit `grep` stałych liczbowych

@@ -786,9 +786,16 @@ def main(argv: list[str] | None = None) -> int:
                     t_amb_k=args.t_intake_k,
                     relax=float(args.turbo_relax),
                 )
+                boost_ceiling_pa = None
+                if boost_map is not None:
+                    # Factory BOOST map ceiling (feedforward); the map is the
+                    # commanded intake pressure at (rpm, iq).
+                    boost_ceiling_pa = float(boost_map.map_target_mbar(
+                        args.rpm, iq_eff)) * 100.0
                 coupled = simulate_coupled_turbo_map(
                     geom, fuel, schedule_built, cfg_full, turbo_cfg,
                     TurboMapModel.from_yaml(), iterations=max(1, int(args.turbo_iters)),
+                    boost_ceiling_pa=boost_ceiling_pa,
                 )
                 res = coupled.result
                 annotate_metrics(res.metrics, fuel_mg=fuel_mg)

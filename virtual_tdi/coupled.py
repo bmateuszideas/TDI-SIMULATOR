@@ -111,6 +111,7 @@ def simulate_coupled_turbo_map(
     turbo_cfg: TurboConfig,
     turbo_map: "TurboMapModel",
     iterations: int = 8,
+    boost_ceiling_pa: float | None = None,
 ) -> CoupledResult:
     """Turbo coupling using compressor/turbine maps (TODO.md Faza 2.A).
 
@@ -220,6 +221,11 @@ def simulate_coupled_turbo_map(
             pr_target = pr * 1.02
         pr_target = max(1.0, min(float(args_pr_max_holder[0]), pr_target))
         p_target = pr_target * turbo_cfg.p_amb_pa
+        # Factory boost-target feedforward (docs/MAPY_ECU_KONWENCJE.md): the
+        # ECU maps command the intake pressure; without this ceiling the
+        # coupling overboosts at part load (VNT would open/bypass instead).
+        if boost_ceiling_pa is not None:
+            p_target = min(p_target, float(boost_ceiling_pa))
         p_intake = (1.0 - turbo_cfg.relax) * p_intake + turbo_cfg.relax * p_target
 
         history.append({
