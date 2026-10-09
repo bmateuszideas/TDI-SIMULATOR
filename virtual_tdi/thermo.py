@@ -28,26 +28,48 @@ _LOG_RHO_STEP = None
 @dataclass(frozen=True)
 class GasModel:
     r_j_per_kg_k: float = R_AIR_J_PER_KG_K
+    # Exhaust products have a higher molar mass and cp than air; the mixture
+    # gamma drops accordingly. cp offset from diesel exhaust gas tables
+    # (Heywood Ch. 3: cp_exh ~ 1105-1150 J/kgK at 300-800 K vs 1005 air).
+    cp_burned_offset_j_per_kg_k: float = 110.0
 
-    def gamma(self, temperature_k: float, cfg: SimulationConfig, *, pressure_pa: float | None = None) -> float:
+    def _burned_cp_offset(self, burned_fraction: float | None) -> float:
+        if burned_fraction is None:
+            return 0.0
+        x = max(0.0, min(1.0, float(burned_fraction)))
+        return self.cp_burned_offset_j_per_kg_k * x
+
+    def gamma(self, temperature_k: float, cfg: SimulationConfig, *, pressure_pa: float | None = None,
+              burned_fraction: float | None = None) -> float:
         props = _real_gas_props(temperature_k, pressure_pa, cfg)
         if props is not None:
             return props["gamma"]
         g = cfg.gamma_t0 - cfg.gamma_slope_per_k * temperature_k
-        return max(cfg.gamma_min, min(cfg.gamma_max, g))
+        g = max(cfg.gamma_min, min(cfg.gamma_max, g))
+        if burned_fraction is not None and burned_fraction > 0.0:
+            # Mixture correction: gamma_mix = cp_mix / (cp_mix - R) with
+            # cp_mix = cp_air + x * cp_offset (TODO.md Faza 2.B.1).
+            cp_air = g * self.r_j_per_kg_k / max(1e-9, (g - 1.0))
+            cp_mix = cp_air + self._burned_cp_offset(burned_fraction)
+            return cp_mix / max(1e-9, cp_mix - self.r_j_per_kg_k)
+        return g
 
-    def cp(self, temperature_k: float, cfg: SimulationConfig, *, pressure_pa: float | None = None) -> float:
+    def cp(self, temperature_k: float, cfg: SimulationConfig, *, pressure_pa: float | None = None,
+           burned_fraction: float | None = None) -> float:
         props = _real_gas_props(temperature_k, pressure_pa, cfg)
         if props is not None:
             return props["cp"]
-        g = self.gamma(temperature_k, cfg, pressure_pa=pressure_pa)
+        g = self.gamma(temperature_k, cfg, pressure_pa=pressure_pa,
+                       burned_fraction=burned_fraction)
         return g * self.r_j_per_kg_k / max(1e-9, (g - 1.0))
 
-    def cv(self, temperature_k: float, cfg: SimulationConfig, *, pressure_pa: float | None = None) -> float:
+    def cv(self, temperature_k: float, cfg: SimulationConfig, *, pressure_pa: float | None = None,
+           burned_fraction: float | None = None) -> float:
         props = _real_gas_props(temperature_k, pressure_pa, cfg)
         if props is not None:
             return props["cv"]
-        cp = self.cp(temperature_k, cfg, pressure_pa=pressure_pa)
+        cp = self.cp(temperature_k, cfg, pressure_pa=pressure_pa,
+                     burned_fraction=burned_fraction)
         return max(1e-9, cp - self.r_j_per_kg_k)
 
     def density_from_pT(self, pressure_pa: float, temperature_k: float, cfg: SimulationConfig) -> float:

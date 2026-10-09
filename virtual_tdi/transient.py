@@ -16,10 +16,14 @@ RAD_S2RPM = 60.0 / (2.0 * np.pi)
 
 @dataclass(frozen=True)
 class GovernorConfig:
-    """PI speed governor acting on fuel quantity (IQ)."""
+    """PI speed governor acting on fuel quantity (IQ).
 
-    kp_mg_per_rpm: float = 0.10
-    ki_mg_per_rpm_s: float = 0.06
+    Gains re-tuned after the Faza 2.B.2 fuel-mass fix (fuel mass now joins the
+    charge, changing the loop gain); see docs/validation_report.md.
+    """
+
+    kp_mg_per_rpm: float = 0.05
+    ki_mg_per_rpm_s: float = 0.03
     iq_min_mg: float = 0.0
     iq_max_mg: float = 55.0
     anti_windup: bool = True

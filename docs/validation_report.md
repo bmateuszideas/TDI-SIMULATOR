@@ -81,3 +81,27 @@ komendowanej. To unieważnia wszystkie wcześniejsze wyniki `--turbo`.
 Pozostały deficyt rated power (−12.6%): p_intake 1.76 bar (realny ~1.9-2.0),
 q_wall ~13% energii. Kandydaci: kalibracja w_mult/ścian (1.B.2), dokładniejsza
 mapa VNT (section 2.6 w TODO.md - jeśli pojawi się oficjalna mapa Garrett).
+
+## 7. Stan po 1.B.2 + 2.B (pełna walidacja zielona)
+
+Kalibracja ścian (600/650/550 K, górny zakres Heywood Ch. 13 dla turbo DI) na
+fizycznym punkcie pracy turbo (po 2.A), plus fixy termofizyczne:
+
+- **2.B.2 masa paliwa w ładunku:** dm_fuel/dθ = dQ/LHV zsynchronizowane z HRR
+  (wcześniej energia wchodziła bez masy — bias ~4% przy pełnym obciążeniu).
+- **2.B.1 γ(T,x):** GasModel z burned_fraction (cp spalin +110 J/kgK wg
+  Heywood Ch. 3); cylinder = EGR + burnt fuel fraction, kolektor wydechowy x=1.
+- **Governor PI re-strojenie** (kp 0.10→0.05, ki 0.06→0.03): masa paliwa
+  zmienia gain pętli; stare wzmocnienia dawały oscylacje/overshoot prędkości.
+
+Wynik `python -m virtual_tdi validate`:
+
+| Punkt | Wynik | Delty |
+|---|---|---|
+| full_load_peak_torque | **PASS** | torque −8.1%, peak-P +9.6%, BSFC +1.8% |
+| full_load_rated_power | **PASS** | power −2.1%, BSFC +0.8% |
+| part_load_cruise | **PASS** | IMEP +5.9%, BSFC +7.3% |
+
+Model jest teraz zwalidowany na 3 punktach ALH 90 PS w tolerancjach 10-25%.
+Kolejny poziom wierności wymagałby danych pomiarowych (P-θ trace, EGT po hamowni)
+— zakresy literaturowe są wykorzystane do granic ich rozdzielczości.

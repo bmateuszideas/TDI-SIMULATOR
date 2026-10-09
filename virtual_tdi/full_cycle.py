@@ -175,6 +175,8 @@ def simulate_full_cycle(
     q_total_j = (cfg.fuel_mg_per_cycle_per_cyl * 1e-6) * fuel.lhv_j_per_kg * cfg.models.combustion.eta_comb
     m_fuel_total_kg = (cfg.fuel_mg_per_cycle_per_cyl * 1e-6)
 
+    m_fuel_burnt_frac_holder = [0.0]
+
     intake_state = ManifoldState.from_config(cfg.intake_manifold_config)
     exhaust_state = ManifoldState.from_config(cfg.exhaust_manifold_config)
 
@@ -304,15 +306,18 @@ def simulate_full_cycle(
         p_i = gas.pressure_from_rhoT(m_i / cfg.intake_manifold_config.volume_m3, t_i, cfg.models)
         p_e = gas.pressure_from_rhoT(m_e / cfg.exhaust_manifold_config.volume_m3, t_e, cfg.models)
         
-        g_c = gas.gamma(t_c, cfg.models, pressure_pa=p_c)
-        cp_c = gas.cp(t_c, cfg.models, pressure_pa=p_c)
-        cv_c = gas.cv(t_c, cfg.models, pressure_pa=p_c)
-        g_i = gas.gamma(t_i, cfg.models, pressure_pa=p_i)
-        cp_i = gas.cp(t_i, cfg.models, pressure_pa=p_i)
-        cv_i = gas.cv(t_i, cfg.models, pressure_pa=p_i)
-        g_e = gas.gamma(t_e, cfg.models, pressure_pa=p_e)
-        cp_e = gas.cp(t_e, cfg.models, pressure_pa=p_e)
-        cv_e = gas.cv(t_e, cfg.models, pressure_pa=p_e)
+        # Burned-gas fraction in the cylinder: residual/EGR fraction plus the
+        # share of charge mass that is fuel burnt so far this cycle (Faza 2.B.1).
+        x_burned = max(0.0, min(1.0, f_c + m_fuel_burnt_frac_holder[0]))
+        g_c = gas.gamma(t_c, cfg.models, pressure_pa=p_c, burned_fraction=x_burned)
+        cp_c = gas.cp(t_c, cfg.models, pressure_pa=p_c, burned_fraction=x_burned)
+        cv_c = gas.cv(t_c, cfg.models, pressure_pa=p_c, burned_fraction=x_burned)
+        g_i = gas.gamma(t_i, cfg.models, pressure_pa=p_i, burned_fraction=f_i)
+        cp_i = gas.cp(t_i, cfg.models, pressure_pa=p_i, burned_fraction=f_i)
+        cv_i = gas.cv(t_i, cfg.models, pressure_pa=p_i, burned_fraction=f_i)
+        g_e = gas.gamma(t_e, cfg.models, pressure_pa=p_e, burned_fraction=1.0)
+        cp_e = gas.cp(t_e, cfg.models, pressure_pa=p_e, burned_fraction=1.0)
+        cv_e = gas.cv(t_e, cfg.models, pressure_pa=p_e, burned_fraction=1.0)
         g_amb = gas.gamma(cfg.t_ambient_k, cfg.models, pressure_pa=cfg.p_ambient_pa)
         cp_amb = gas.cp(cfg.t_ambient_k, cfg.models, pressure_pa=cfg.p_ambient_pa)
 
@@ -415,6 +420,15 @@ def simulate_full_cycle(
             injection_profile=cfg.injection_profile
         )
         
+        # Fuel mass source: burnt fuel joins the cylinder charge in step with
+        # the heat release (mass conservation for the combusting fuel; the
+        # TODO.md Faza 2.B.2 fix - previously the fuel energy entered without
+        # its mass, biasing the charge ~4% low at full load).
+        dm_fuel_dtheta = (dq_c / fuel.lhv_j_per_kg) if fuel.lhv_j_per_kg > 0 else 0.0
+        dm_cyl_dtheta += dm_fuel_dtheta
+        # Burnt-fuel mass fraction of the charge (for the gamma(T,x) mixture).
+        m_fuel_burnt_frac_holder[0] = dm_fuel_dtheta / max(cfg.m_min_kg, m_c)
+
         htc = h_woschni_simplified_w_per_m2_k(
             bore_m=geom.bore_m,
             pressure_pa=p_c,

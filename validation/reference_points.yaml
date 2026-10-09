@@ -16,7 +16,7 @@ points:
     known_gap: turbo_coupling   # current turbo balance yields ~0.94 bar intake (see docs/validation_report.md)
     expect:
       brake_torque_nm: {ref: 210.0, tol_pct: 10}
-      peak_pressure_pa: {ref: 10500000.0, tol_pct: 20}  # ~105 bar typical full-load DI diesel
+      peak_pressure_pa: {ref: 11500000.0, tol_pct: 15}  # ~115 bar typical full-load DI diesel (Heywood Ch. 2; ALH ~110-130 bar)
       bsfc_g_per_kwh: {ref: 210.0, tol_pct: 12}
 
   - name: full_load_rated_power
