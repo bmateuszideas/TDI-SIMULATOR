@@ -8,6 +8,7 @@ import numpy as np
 from .full_cycle import BoundaryConditions, FullCycleConfig, simulate_full_cycle
 from .models import EngineGeometry, Fuel, InjectionSchedule
 from .thermo import omega_rad_per_s
+from .perception import PerceptionConfig, PerceptionLayer
 
 
 RPM2RAD_S = 2.0 * np.pi / 60.0
@@ -50,6 +51,12 @@ class TransientConfig:
     inertia_kg_m2: float = 0.35
     governor: GovernorConfig = field(default_factory=GovernorConfig)
     turbo_lag: TurboLagConfig = field(default_factory=TurboLagConfig)
+    perception: PerceptionConfig = field(default_factory=PerceptionConfig)
+    # Faza 2.A.3: physical turbo shaft dynamics (J*domega/dt) from the map;
+    # when enabled it replaces the first-order boost lag.
+    turbo_shaft_dynamics: bool = False
+    turbo_shaft_inertia_kg_m2: float = 2.0e-5
+    turbo_shaft_rpm_start: float = 60000.0
     p_intake_start_bar_abs: float = 1.0
     t_intake_k: float = 300.0
     p_exhaust_bar_abs: float = 1.15
@@ -72,6 +79,8 @@ class TransientSample:
     imep_bar: float
     peak_pressure_bar: float
     metrics: dict[str, Any]
+    turbo_shaft_rpm: float = 0.0
+    rpm_perceived: float = 0.0
 
 
 @dataclass
@@ -142,6 +151,14 @@ def run_transient(
     iq_integral = 0.0
     iq_prev = iq
     p_intake_bar = float(cfg.p_intake_start_bar_abs)
+    turbo_shaft_rpm = float(cfg.turbo_shaft_rpm_start)
+    perception = (PerceptionLayer(cfg.perception, dt_s=cfg.dt_s, seed=0)
+                  if cfg.perception.enabled else None)
+    rpm_perceived = float(cfg.rpm_start)
+    turbo_map = None
+    if cfg.turbo_shaft_dynamics:
+        from .turbo_map import TurboMapModel
+        turbo_map = TurboMapModel.from_yaml()
     samples: list[TransientSample] = []
     cycle_history: list[dict[str, Any]] = []
 
@@ -152,7 +169,12 @@ def run_transient(
     for k in range(n_steps):
         t = cfg.t_start_s + k * cfg.dt_s
         rpm_target = float(rpm_target_fn(t))
-        err = rpm_target - rpm
+        if perception is not None:
+            rpm_perceived = perception.rpm.step(rpm)
+            err = rpm_target - rpm_perceived
+        else:
+            rpm_perceived = rpm
+            err = rpm_target - rpm
         iq_integral += err * cfg.dt_s
         iq_p = gov.kp_mg_per_rpm * err
         iq_i = gov.ki_mg_per_rpm_s * iq_integral
@@ -195,9 +217,31 @@ def run_transient(
         rpm_next = rpm + domega * RAD_S2RPM * cfg.dt_s
         rpm_next = max(0.0, rpm_next)
 
-        # Turbo lag: intake pressure moves toward boost target with time constant tau.
-        p_target_bar = float(cfg.turbo_lag.p_boost_target_bar_abs)
-        p_intake_bar = p_intake_bar + (cfg.dt_s / max(1e-9, cfg.turbo_lag.tau_s)) * (p_target_bar - p_intake_bar)
+        if turbo_map is not None:
+            # Faza 2.A.3: physical shaft dynamics from the turbo map.
+            from .turbo_map import shaft_dynamics_step
+            cycles_per_s = max(1e-6, rpm_cycle / 60.0 / 2.0)
+            m_air_kg_s = (float(res.metrics.get("m_air_in_kg_per_cyl", 0.0))
+                          * cycles_per_s * geom.cylinders)
+            m_exh_kg_s = (float(res.metrics.get("m_exhaust_out_kg_per_cyl", 0.0))
+                          * cycles_per_s * geom.cylinders)
+            p_exh_for_turbine = cfg.p_ambient_bar_abs_turbine_in * 1.0e5 if hasattr(cfg, "p_ambient_bar_abs_turbine_in") else p_intake_bar * 1.4 * 1.0e5
+            turbo_shaft_rpm, pr_new = shaft_dynamics_step(
+                turbo_map,
+                shaft_rpm=turbo_shaft_rpm,
+                p_intake_pa=p_intake_bar * 1.0e5,
+                p_exhaust_pa=p_exh_for_turbine,
+                t_exhaust_k=float(res.metrics.get("t_exhaust_mean_k", 800.0)),
+                m_air_kg_s=m_air_kg_s,
+                m_exhaust_kg_s=m_exh_kg_s,
+                dt_s=cfg.dt_s,
+                inertia_kg_m2=cfg.turbo_shaft_inertia_kg_m2,
+            )
+            p_intake_bar = pr_new  # map-consistent PR at the new shaft speed
+        else:
+            # Turbo lag: intake pressure moves toward boost target with time constant tau.
+            p_target_bar = float(cfg.turbo_lag.p_boost_target_bar_abs)
+            p_intake_bar = p_intake_bar + (cfg.dt_s / max(1e-9, cfg.turbo_lag.tau_s)) * (p_target_bar - p_intake_bar)
 
         samples.append(
             TransientSample(
@@ -212,6 +256,8 @@ def run_transient(
                 imep_bar=float(res.metrics.get("imep_bar", 0.0)),
                 peak_pressure_bar=float(res.metrics.get("peak_pressure_pa", 0.0)) / 1.0e5,
                 metrics=res.metrics,
+                turbo_shaft_rpm=turbo_shaft_rpm,
+                rpm_perceived=rpm_perceived,
             )
         )
         cycle_history.append(

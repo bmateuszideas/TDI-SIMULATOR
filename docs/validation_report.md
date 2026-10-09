@@ -105,3 +105,18 @@ Wynik `python -m virtual_tdi validate`:
 Model jest teraz zwalidowany na 3 punktach ALH 90 PS w tolerancjach 10-25%.
 Kolejny poziom wierności wymagałby danych pomiarowych (P-θ trace, EGT po hamowni)
 — zakresy literaturowe są wykorzystane do granic ich rozdzielczości.
+
+## 8. Faza 2.A.3 + 2.C.1 (percepcja, dynamika wałka)
+
+- **2.A.3:** `shaft_dynamics_step` (turbo_map.py): jawny Euler J*domega/dt z map;
+  VNT-like kontrola ER (zamkniete lopatki przy niskim N -> wysoki ER; otwarte przy
+  rownowadze). Moc sprężarki liczona z przepływu mapy w punkcie pracy (stabilność
+  rownowagi). Transient: `turbo_shaft_dynamics=True` zastepuje lag 1. rzedu;
+  walkek stabilizuje sie ~130k rpm (bez ucieczki do limitu), governor trzyma 1500 rpm.
+- **2.C.1:** `virtual_tdi/perception.py`: SensorModel (lag 1. rzedu + delay +
+  bias + szum Gaussowski z seedem) dla rpm/MAP/EGT z wartosciami typowymi dla EDC
+  lat 90. PerceptionLayer podpiety do petli governor (percepcja RPM); szum/opoznienie
+  degraduja steady-state accuracy governor o ~2-3% (zmierzone w tescie) - realistyczne.
+
+Walidacja po zmianach: 3/3 PASS (bez regresji; zmiany nie dotykaja sciezki
+steady-state full cycle).

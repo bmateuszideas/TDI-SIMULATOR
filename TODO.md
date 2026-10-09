@@ -186,7 +186,7 @@
 
 ### 2.C Percepcja ECU (M6)
 
-- [ ] **2.C.1 Model czujników: opóźnienia, filtry (1 rzędu), szum/bias**
+- [x] **2.C.1 Model czujników: opóźnienia, filtry (1 rzędu), szum/bias** — virtual_tdi/perception.py (SensorModel: lag+delay+bias+noise; PerceptionLayer rpm/MAP/EGT); podpięte do governor pętli (perception.enabled)
   - Dziś: mapy ECU czytają prawdziwe wartości bez opóźnień.
   - Parametry: delay EGT (rzędu sekund), delay MAP, szum MAF — z źródłami lub explicit assumptions.
   - AC: klasa `SensorModel` + test (przepływ sygnału, opóźnienie widoczne w śladzie).

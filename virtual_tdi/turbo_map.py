@@ -113,3 +113,82 @@ class TurboMapModel:
         work_isentropic = (mdot * cp_j_per_kg_k * t_turbine_in_k
                            * (1.0 - er ** (-temp)))
         return float(work_isentropic * eff)
+
+
+def shaft_dynamics_step(
+    turbo_map: TurboMapModel,
+    *,
+    shaft_rpm: float,
+    p_intake_pa: float,
+    p_exhaust_pa: float,
+    t_exhaust_k: float,
+    m_air_kg_s: float,
+    m_exhaust_kg_s: float,
+    p_amb_pa: float = 1.0e5,
+    dt_s: float = 0.05,
+    inertia_kg_m2: float = 2.0e-5,
+    eta_mech: float = 0.95,
+) -> tuple[float, float]:
+    """One explicit-Euler step of turbo shaft dynamics (TODO.md Faza 2.A.3).
+
+    domega/dt = (P_turbine * eta_mech - P_compressor) / (J * omega)
+
+    Returns (new_shaft_rpm, new_pr) where the new PR is read from the
+    compressor map at the new shaft speed and the engine mass flow
+    (mass-consistent operating point).
+    """
+    import numpy as np
+
+    pr = max(1.0, p_intake_pa / max(1.0, p_amb_pa))
+    # VNT behavior: at low shaft speed the vanes close -> high ER (spool);
+    # as the shaft reaches its equilibrium speed the vanes open -> ER falls.
+    # Simple control: ER tracks the ratio of current speed to the mass-consistent
+    # equilibrium speed, clipped to [1.05, 2.6].
+    lo, hi = 1.0, 4.5
+    for _ in range(24):
+        mid = 0.5 * (lo + hi)
+        m_map = turbo_map.compressor_mass_kg_s(shaft_rpm, mid)
+        if m_map > m_air_kg_s:
+            hi = mid
+        else:
+            lo = mid
+    pr_eq = 0.5 * (lo + hi)          # PR the map would hold at this speed
+    vnt_gain = max(0.0, min(1.0, (pr_eq - pr) / max(1e-6, pr_eq - 1.0)))
+    er = max(1.0, 1.05 + 1.55 * vnt_gain)
+    p_comp_w = turbo_map.compressor_power_w(shaft_rpm, pr, m_air_kg_s)
+    p_turb_w = turbo_map.turbine_power_w(
+        er, shaft_rpm, t_exhaust_k, p_out_pa=p_amb_pa,
+        mdot_exhaust_kg_s=m_exhaust_kg_s,
+    )
+    omega = max(1.0, shaft_rpm * 2.0 * np.pi / 60.0)
+    # Compressor absorbs power for the flow it actually swallows at the
+    # operating point (map flow, not engine demand) - otherwise the shaft
+    # never finds equilibrium when the engine sits left of the speed line.
+    m_map_now = turbo_map.compressor_mass_kg_s(shaft_rpm, pr)
+    p_comp_w = turbo_map.compressor_power_w(shaft_rpm, pr, m_map_now)
+    domega_dt = (p_turb_w * eta_mech - p_comp_w) / max(1e-12, inertia_kg_m2 * omega)
+    # Inertia-based speed cap: J*omega^2 energy balance bounds the step.
+    domega_dt = float(np.clip(domega_dt, -2.0e4, 2.0e4))
+    omega_new = max(1.0, omega + domega_dt * dt_s)
+    shaft_rpm_new = omega_new * 60.0 / (2.0 * np.pi)
+    shaft_rpm_new = float(min(max(shaft_rpm_new, 10000.0), 280000.0))
+
+    # New PR from the map: mass-consistent point on the new speed line.
+    # If the engine flow sits below the whole speed line (small engine at
+    # high shaft speed), clip to the minimum mapped PR.
+    lo, hi = 1.0, 4.5
+    m_map_low = turbo_map.compressor_mass_kg_s(shaft_rpm_new, lo)
+    if m_map_low <= m_air_kg_s:
+        # no mass-consistent PR at this speed: engine wants less flow than
+        # the line's low-PR end; keep PR at the mapped floor (surge side).
+        pr_new = lo
+    else:
+        for _ in range(24):
+            mid = 0.5 * (lo + hi)
+            m_map = turbo_map.compressor_mass_kg_s(shaft_rpm_new, mid)
+            if m_map > m_air_kg_s:
+                hi = mid
+            else:
+                lo = mid
+        pr_new = 0.5 * (lo + hi)
+    return shaft_rpm_new, float(pr_new)
