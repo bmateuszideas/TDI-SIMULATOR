@@ -265,7 +265,8 @@ def generate_dataset(
 
         p_intake_bar = float(rng.uniform(cfg.p_intake_bar_min, cfg.p_intake_bar_max))
         if cfg.use_boost_map and boost_target_mbar is not None:
-            p_intake_bar = boost_target_mbar / 1000.0 - float(cfg.p_amb_bar)
+            # Boost map target is absolute pressure (same semantics as cli.py).
+            p_intake_bar = boost_target_mbar / 1000.0
             p_intake_bar = max(0.01, p_intake_bar)
 
         boundaries = BoundaryConditions(
@@ -385,7 +386,7 @@ def _make_argparser() -> argparse.ArgumentParser:
     p.add_argument("--pilot-model", choices=["fixed", "hydraulic"], default="fixed")
     p.add_argument("--pilot-frac", type=float, default=0.12, help="Pilot fraction for fixed model.")
     p.add_argument("--thermo-backend", choices=["simple", "coolprop"], default="coolprop")
-    p.add_argument("--flow-backend", choices=["simple", "fluids"], default="fluids")
+    p.add_argument("--flow-backend", choices=["simple", "fluids"], default="simple")
     p.add_argument("--coolprop-fluid", type=str, default="Air")
     p.add_argument("--ignition-delay", choices=["arrhenius", "fixed_deg"], default="arrhenius")
     p.add_argument("--ignition-delay-deg", type=float, default=5.0)

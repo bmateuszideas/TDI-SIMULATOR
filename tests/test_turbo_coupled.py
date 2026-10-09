@@ -49,6 +49,12 @@ class TestTurboCoupled(unittest.TestCase):
         res = simulate_coupled_turbo(geom, fuel, schedule, cfg, turbo_cfg, iterations=2)
         self.assertGreater(res.result.metrics["peak_pressure_pa"], 1.0e5)
         self.assertTrue(len(res.history) >= 1)
+        # N-03 regression: full cycle must expose exhaust enthalpy power and
+        # the coupled result must use it (turbine power > 0, PR >= 1).
+        self.assertGreater(res.result.metrics["exhaust_power_kw_est"], 0.0)
+        for h in res.history:
+            self.assertGreater(h["power_exhaust_w"], 0.0)
+            self.assertGreaterEqual(h["pr_comp"], 1.0)
 
 
 if __name__ == "__main__":

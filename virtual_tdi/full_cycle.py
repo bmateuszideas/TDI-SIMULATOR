@@ -20,7 +20,6 @@ from .fmep import calculate_fmep_from_config
 from .geometry import geometry_at_theta
 from .heat_transfer import h_woschni_simplified_w_per_m2_k, calculate_wall_heat_loss_j_per_rad
 from .models import EngineGeometry, Fuel, SimulationConfig, ManifoldConfig, ManifoldState
-from .heat_transfer import calculate_wall_heat_loss_j_per_rad, h_woschni_simplified_w_per_m2_k
 from .thermo import GasModel, omega_rad_per_s
 from .valvetrain import ValveFlow, ValveTiming, effective_curtain_area_m2, valve_lift_fraction
 from .lift_table import ValveLiftTable
@@ -479,10 +478,21 @@ def simulate_full_cycle(
     indicated_torque_nm = (imep_pa * geom.swept_volume_m3_per_cyl * geom.cylinders) / (4.0 * pi)
     pmax_pa = float(np.max(results["pressure"]))
     fmep_pa = calculate_fmep_from_config(cfg.models, pmax_pa)
-    brake_torque_nm = max(0.0, (imep_pa - fmep_pa) * geom.swept_volume_m3_per_cyl * geom.cylinders / (4.0 * pi))
+    brake_torque_nm = (imep_pa - fmep_pa) * geom.swept_volume_m3_per_cyl * geom.cylinders / (4.0 * pi)
     power_w = brake_torque_nm * omega
     
     dt = (cfg.step_deg * DEG2RAD) / max(1e-9, omega)
+    # Exhaust enthalpy power available to a turbine: integral of positive
+    # outflow mdot * cp * (T_exhaust - T_ambient) over the cycle, scaled to
+    # per-engine mass flow. Feeds the turbo power balance in coupled.py.
+    mdot_out = np.clip(-results["mdot_ex"], 0.0, None)
+    t_exh_series = results["t_exhaust"]
+    cp_exh = np.array([gas.cp(float(t), cfg.models) for t in t_exh_series])
+    h_flow_j_per_cyl = float(
+        np.sum(mdot_out * cp_exh * (t_exh_series - cfg.t_ambient_k) * dt)
+    )
+    cycles_per_s = omega / (4.0 * pi)  # 4-stroke: 2 revolutions per cycle
+    exhaust_power_kw_est = h_flow_j_per_cyl * cycles_per_s * geom.cylinders / 1000.0
     
     metrics = {
         "peak_pressure_pa": np.max(results["pressure"]),
@@ -496,6 +506,7 @@ def simulate_full_cycle(
         "mass_end_kg_per_cyl": results["mass"][-1],
         "m_air_in_kg_per_cyl": np.sum(np.clip(results["mdot_in"], 0.0, None) * dt),
         "m_exhaust_out_kg_per_cyl": np.sum(np.clip(-results["mdot_ex"], 0.0, None) * dt),
+        "exhaust_power_kw_est": exhaust_power_kw_est,
         "p_intake_mean_pa": np.mean(results["p_intake"]),
         "t_intake_mean_k": np.mean(results["t_intake"]),
         "p_exhaust_mean_pa": np.mean(results["p_exhaust"]),

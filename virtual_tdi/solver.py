@@ -183,7 +183,7 @@ def simulate_closed_cycle(
     indicated_torque_nm = imep_pa * vd_total / (4.0 * pi)  # 4-stroke
     pmax_pa = float(np.max(pressure))
     fmep_pa = calculate_fmep_from_config(cfg, pmax_pa)
-    brake_torque_nm = max(0.0, (imep_pa - fmep_pa) * vd_total / (4.0 * pi))
+    brake_torque_nm = (imep_pa - fmep_pa) * vd_total / (4.0 * pi)
 
     metrics = {
         "mass_kg_per_cyl": mass_kg,
@@ -371,7 +371,7 @@ def simulate_closed_cycle_scipy(
     indicated_torque_nm = imep_pa * vd_total / (4.0 * pi)
     pmax_pa = float(np.max(pressure))
     fmep_pa = calculate_fmep_from_config(cfg, pmax_pa)
-    brake_torque_nm = max(0.0, (imep_pa - fmep_pa) * vd_total / (4.0 * pi))
+    brake_torque_nm = (imep_pa - fmep_pa) * vd_total / (4.0 * pi)
 
     metrics = {
         "mass_kg_per_cyl": mass_kg,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Callable, Any
 
 import numpy as np
@@ -52,7 +52,7 @@ class TransientConfig:
     t_exhaust_k: float = 800.0
     cycles_per_point: int = 2
     fuel_mg_start: float = 5.0
-    dq_drop_rate_s: float = 1.0
+    dq_drop_rate_s: float = 20.0
 
 
 @dataclass
@@ -136,6 +136,7 @@ def run_transient(
     rpm = float(cfg.rpm_start)
     iq = float(cfg.fuel_mg_start)
     iq_integral = 0.0
+    iq_prev = iq
     p_intake_bar = float(cfg.p_intake_start_bar_abs)
     samples: list[TransientSample] = []
     cycle_history: list[dict[str, Any]] = []
@@ -160,14 +161,21 @@ def run_transient(
                 iq_integral -= err * cfg.dt_s
                 iq_raw = gov.iq_min_mg
         iq = float(np.clip(iq_raw, gov.iq_min_mg, gov.iq_max_mg))
+        # Slew-rate limit on fuel quantity change [mg/s] to avoid bang-bang actuation.
+        if cfg.dq_drop_rate_s > 0.0:
+            max_delta = cfg.dq_drop_rate_s * cfg.dt_s
+            iq = float(np.clip(iq, iq_prev - max_delta, iq_prev + max_delta))
+            iq = float(np.clip(iq, gov.iq_min_mg, gov.iq_max_mg))
 
+        rpm_cycle = max(100.0, rpm)
+        models_at_rpm = replace(models, rpm=rpm_cycle)
         schedule = schedule_builder(iq)
         full_cfg = _make_full_cycle_cfg(
             cfg=cfg,
-            rpm=max(100.0, rpm),
+            rpm=rpm_cycle,
+            models=models_at_rpm,
             p_intake_bar_abs=p_intake_bar,
             fuel_mg=iq,
-            models=models,
             valve_timing=valve_timing,
             valve_flow=valve_flow,
             valve_lift_table=valve_lift_table,
@@ -215,6 +223,7 @@ def run_transient(
         if progress is not None:
             progress(k + 1, n_steps)
         rpm = rpm_next
+        iq_prev = iq
 
     return TransientResult(samples=samples, cycle_history=cycle_history)
 
