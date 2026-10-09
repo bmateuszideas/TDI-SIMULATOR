@@ -120,8 +120,69 @@ def run_validation(reference_path: str | Path = DEFAULT_REFERENCE,
     return rows
 
 
+def run_map_grid_validation(*, n_rpm: int = 4, n_iq: int = 3,
+                            workdir: Path | None = None,
+                            verbose: bool = True) -> list[dict]:
+    """Map-grid validation: compare model intake pressure against the factory
+    BOOST map across the ECU working area (docs/MAPY_ECU_KONWENCJE.md)."""
+    import subprocess
+    import tempfile
+
+    from virtual_tdi.edc_maps import BoostTargetMap2D, SmokeLimiterMap2D
+    from virtual_tdi.soi_map import SOIMap2D
+    from validation.map_consistency import build_grid
+
+    soi_map = SOIMap2D.from_csv(next(Path(".").glob("*SOI*Table 1.csv")))
+    boost_map = BoostTargetMap2D.from_csv(next(Path(".").glob("Mapa_BOOST*.csv")))
+    smoke_map = SmokeLimiterMap2D.from_csv(next(Path(".").glob("SmokeLimiter*.csv")))
+    grid = build_grid(soi_map=soi_map, boost_map=boost_map, smoke_map=smoke_map,
+                      n_rpm=n_rpm, n_iq=n_iq)
+
+    workdir = Path(workdir) if workdir else Path(tempfile.gettempdir()) / "tdi_mapgrid"
+    workdir.mkdir(parents=True, exist_ok=True)
+
+    rows: list[dict] = []
+    for pt in grid:
+        out_dir = workdir / f"r{int(pt.rpm)}_iq{pt.iq_mg:.0f}"
+        cmd = [
+            sys.executable, "-m", "virtual_tdi", "--mode", "full",
+            "--rpm", str(pt.rpm), "--fuel", "diesel",
+            "--fuel-mg", str(pt.iq_mg),
+            "--soi-main", str(pt.soi_model_deg),
+            "--turbo", "--turbo-iters", "12", "--turbo-relax", "0.6",
+            "--turbo-pr-max", "2.0",
+            "--cycles", "2",
+            "--thermo-backend", "simple", "--integrator", "rk4",
+            "--out", str(out_dir), "--no-plot",
+        ]
+        proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
+        if proc.returncode != 0:
+            if verbose:
+                print(f"[{pt.rpm:.0f} rpm, {pt.iq_mg:.1f} mg] CLI FAILED: {proc.stderr.strip()[-200:]}")
+            rows.append({"rpm": pt.rpm, "iq": pt.iq_mg, "p_sim_mbar": None,
+                         "p_ref_mbar": pt.boost_target_mbar_abs, "delta_pct": None,
+                         "status": "ERROR"})
+            continue
+        metrics = _read_metrics(out_dir)
+        p_sim_mbar = metrics.get("p_intake_mean_pa", 0.0) / 100.0
+        delta_pct = (p_sim_mbar - pt.boost_target_mbar_abs) / pt.boost_target_mbar_abs * 100.0
+        status = "PASS" if abs(delta_pct) <= 15.0 else "FAIL"
+        rows.append({"rpm": pt.rpm, "iq": pt.iq_mg, "p_sim_mbar": p_sim_mbar,
+                     "p_ref_mbar": pt.boost_target_mbar_abs, "delta_pct": delta_pct,
+                     "status": status})
+        if verbose:
+            print(f"[{pt.rpm:.0f} rpm, {pt.iq_mg:5.1f} mg] "
+                  f"boost sim={p_sim_mbar:7.1f} mbar, map={pt.boost_target_mbar_abs:7.1f} mbar, "
+                  f"delta={delta_pct:+6.1f}% [{status}]")
+    n_pass = sum(1 for r in rows if r["status"] == "PASS")
+    if verbose:
+        print(f"\nMap-grid validation: {n_pass}/{len(rows)} points within 15% of the factory BOOST map.")
+    return rows
+
+
 def main(argv: list[str] | None = None) -> int:
     import argparse
+    import tempfile
 
     parser = argparse.ArgumentParser(description="Validate simulator against ALH reference points")
     parser.add_argument("--reference", type=Path, default=DEFAULT_REFERENCE,
@@ -129,7 +190,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workdir", type=Path, default=None,
                         help="Directory for run outputs (default: tempdir)")
     parser.add_argument("--quiet", action="store_true", help="Suppress per-point output")
+    parser.add_argument("--map-grid", action="store_true",
+                        help="Run the map-driven grid validation (factory BOOST map "
+                             "as reference across the ECU working area)")
+    parser.add_argument("--grid-rpm", type=int, default=4, help="Map grid: RPM sample count")
+    parser.add_argument("--grid-iq", type=int, default=3, help="Map grid: IQ sample count")
     args = parser.parse_args(argv)
+
+    if args.map_grid:
+        workdir = args.workdir if args.workdir else Path(tempfile.gettempdir()) / "tdi_mapgrid"
+        rows = run_map_grid_validation(n_rpm=args.grid_rpm, n_iq=args.grid_iq,
+                                       workdir=workdir, verbose=not args.quiet)
+        return 0 if all(r["status"] == "PASS" for r in rows) else 1
 
     workdir = args.workdir if args.workdir else Path(tempfile.gettempdir()) / "tdi_validation"
     rows = run_validation(args.reference, workdir=workdir, verbose=not args.quiet)

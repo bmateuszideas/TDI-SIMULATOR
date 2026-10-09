@@ -39,6 +39,21 @@ class TurboLagConfig:
 
 
 @dataclass(frozen=True)
+class BoostPidConfig:
+    """PID boost (VNT vane) controller for the transient shaft-dynamics path.
+
+    Faza 2.C.2: when enabled, the VNT expansion ratio is commanded by a PID
+    on boost error (p_intake target vs current) instead of the open-loop
+    VNT heuristic in shaft_dynamics_step.
+    """
+    kp_er_per_bar: float = 0.8      # ER change per bar of boost error
+    ki_er_per_bar_s: float = 0.15
+    er_min: float = 1.05
+    er_max: float = 2.6
+    enabled: bool = False
+
+
+@dataclass(frozen=True)
 class TransientConfig:
     """Mean-Value Engine Model (MVEM) transient simulation config."""
 
@@ -57,6 +72,7 @@ class TransientConfig:
     turbo_shaft_dynamics: bool = False
     turbo_shaft_inertia_kg_m2: float = 2.0e-5
     turbo_shaft_rpm_start: float = 60000.0
+    boost_pid: BoostPidConfig = field(default_factory=BoostPidConfig)
     p_intake_start_bar_abs: float = 1.0
     t_intake_k: float = 300.0
     p_exhaust_bar_abs: float = 1.15
@@ -159,6 +175,8 @@ def run_transient(
     if cfg.turbo_shaft_dynamics:
         from .turbo_map import TurboMapModel
         turbo_map = TurboMapModel.from_yaml()
+    boost_pid = cfg.boost_pid
+    boost_err_integral = 0.0
     samples: list[TransientSample] = []
     cycle_history: list[dict[str, Any]] = []
 
@@ -225,17 +243,32 @@ def run_transient(
                           * cycles_per_s * geom.cylinders)
             m_exh_kg_s = (float(res.metrics.get("m_exhaust_out_kg_per_cyl", 0.0))
                           * cycles_per_s * geom.cylinders)
-            p_exh_for_turbine = cfg.p_ambient_bar_abs_turbine_in * 1.0e5 if hasattr(cfg, "p_ambient_bar_abs_turbine_in") else p_intake_bar * 1.4 * 1.0e5
+            vnt_er_command = None
+            if boost_pid.enabled:
+                # 2.C.2: PID on boost error commands the VNT expansion ratio.
+                # Anti-windup: freeze the integral while the command saturates
+                # in the direction of the error.
+                p_target_bar_pid = float(cfg.turbo_lag.p_boost_target_bar_abs)
+                boost_err = p_target_bar_pid - p_intake_bar
+                er_unsat = (1.3 + boost_pid.kp_er_per_bar * boost_err
+                            + boost_pid.ki_er_per_bar_s * (boost_err_integral + boost_err * cfg.dt_s))
+                if not ((er_unsat > boost_pid.er_max and boost_err > 0.0)
+                        or (er_unsat < boost_pid.er_min and boost_err < 0.0)):
+                    boost_err_integral += boost_err * cfg.dt_s
+                vnt_er_command = (1.3 + boost_pid.kp_er_per_bar * boost_err
+                                  + boost_pid.ki_er_per_bar_s * boost_err_integral)
+                vnt_er_command = float(min(max(vnt_er_command, boost_pid.er_min), boost_pid.er_max))
             turbo_shaft_rpm, pr_new = shaft_dynamics_step(
                 turbo_map,
                 shaft_rpm=turbo_shaft_rpm,
                 p_intake_pa=p_intake_bar * 1.0e5,
-                p_exhaust_pa=p_exh_for_turbine,
+                p_exhaust_pa=p_intake_bar * 1.4 * 1.0e5,
                 t_exhaust_k=float(res.metrics.get("t_exhaust_mean_k", 800.0)),
                 m_air_kg_s=m_air_kg_s,
                 m_exhaust_kg_s=m_exh_kg_s,
                 dt_s=cfg.dt_s,
                 inertia_kg_m2=cfg.turbo_shaft_inertia_kg_m2,
+                vnt_er_command=vnt_er_command,
             )
             p_intake_bar = pr_new  # map-consistent PR at the new shaft speed
         else:

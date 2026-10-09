@@ -128,6 +128,7 @@ def shaft_dynamics_step(
     dt_s: float = 0.05,
     inertia_kg_m2: float = 2.0e-5,
     eta_mech: float = 0.95,
+    vnt_er_command: float | None = None,
 ) -> tuple[float, float]:
     """One explicit-Euler step of turbo shaft dynamics (TODO.md Faza 2.A.3).
 
@@ -153,8 +154,12 @@ def shaft_dynamics_step(
         else:
             lo = mid
     pr_eq = 0.5 * (lo + hi)          # PR the map would hold at this speed
-    vnt_gain = max(0.0, min(1.0, (pr_eq - pr) / max(1e-6, pr_eq - 1.0)))
-    er = max(1.0, 1.05 + 1.55 * vnt_gain)
+    if vnt_er_command is not None:
+        # 2.C.2: closed-loop PID boost control commands the VNT ER directly.
+        er = max(1.0, float(vnt_er_command))
+    else:
+        vnt_gain = max(0.0, min(1.0, (pr_eq - pr) / max(1e-6, pr_eq - 1.0)))
+        er = max(1.0, 1.05 + 1.55 * vnt_gain)
     p_comp_w = turbo_map.compressor_power_w(shaft_rpm, pr, m_air_kg_s)
     p_turb_w = turbo_map.turbine_power_w(
         er, shaft_rpm, t_exhaust_k, p_out_pa=p_amb_pa,
@@ -168,7 +173,7 @@ def shaft_dynamics_step(
     p_comp_w = turbo_map.compressor_power_w(shaft_rpm, pr, m_map_now)
     domega_dt = (p_turb_w * eta_mech - p_comp_w) / max(1e-12, inertia_kg_m2 * omega)
     # Inertia-based speed cap: J*omega^2 energy balance bounds the step.
-    domega_dt = float(np.clip(domega_dt, -2.0e4, 2.0e4))
+    domega_dt = float(np.clip(domega_dt, -3.0e3, 3.0e3))
     omega_new = max(1.0, omega + domega_dt * dt_s)
     shaft_rpm_new = omega_new * 60.0 / (2.0 * np.pi)
     shaft_rpm_new = float(min(max(shaft_rpm_new, 10000.0), 280000.0))
@@ -176,11 +181,23 @@ def shaft_dynamics_step(
     # New PR from the map: mass-consistent point on the new speed line.
     # If the engine flow sits below the whole speed line (small engine at
     # high shaft speed), clip to the minimum mapped PR.
-    lo, hi = 1.0, 4.5
-    m_map_low = turbo_map.compressor_mass_kg_s(shaft_rpm_new, lo)
-    if m_map_low <= m_air_kg_s:
-        # no mass-consistent PR at this speed: engine wants less flow than
-        # the line's low-PR end; keep PR at the mapped floor (surge side).
+    # Map flow falls with PR at fixed speed. Cases:
+    # - engine flow >= map flow at PR=1: line can't supply the engine even at
+    #   minimum PR -> no boost at this speed, PR stays 1.0 (choke side).
+    # - engine flow <= map flow at PR=hi: engine left of the whole line
+    #   (surge side) -> PR clipped to the minimum.
+    # Search only inside the mapped PR grid; outside it the map clips and the
+    # bisection mis-converges (constant flow beyond the grid edge).
+    lo = float(turbo_map.pr_grid[0])
+    hi = float(turbo_map.pr_grid[-1])
+    m_at_low_pr = turbo_map.compressor_mass_kg_s(shaft_rpm_new, lo)
+    m_at_high_pr = turbo_map.compressor_mass_kg_s(shaft_rpm_new, hi)
+    if m_air_kg_s >= m_at_low_pr:
+        # Engine swallows more than the line supplies even at the minimum PR:
+        # no boost at this shaft speed (choke side).
+        pr_new = 1.0
+    elif m_air_kg_s <= m_at_high_pr:
+        # Engine sits left of the whole speed line (surge side): minimum PR.
         pr_new = lo
     else:
         for _ in range(24):

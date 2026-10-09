@@ -120,3 +120,38 @@ Kolejny poziom wierności wymagałby danych pomiarowych (P-θ trace, EGT po hamo
 
 Walidacja po zmianach: 3/3 PASS (bez regresji; zmiany nie dotykaja sciezki
 steady-state full cycle).
+
+## 9. Faza 2.C.2 (PID boost) + warsztat tunera
+
+- **2.C.2:** BoostPidConfig (PID na boost error -> komenda ER VNT, anti-windup)
+  w transient z shaft dynamics. Fix krytyczny w bisekcji PR: poza gridem PR mapy
+  przepływ jest klipowany (staly) i bisekcja blednie konwergowala do 4.5;
+  przeszukiwanie ograniczone do gridu, przypadki choke/surge obsluzone jawnie.
+- **Warsztat tunera (cel nadrzedny projektu):** `python -m virtual_tdi compare`
+  — porownanie wariantow (nozzle/soi/boost/fuel) na jednym punkcie pracy,
+  tabela metryk. Fizyka uczciwa: przy stalej IQ zmiana koncowki zmienia
+  rate/fazowanie wtrysku, nie mase (bilans paliwa).
+
+Walidacja: 3/3 PASS bez regresji; testy 126 OK.
+
+## 10. Walidacja map-driven (obszar roboczy ECU)
+
+Po ustaleniu konwencji map (MAPY_ECU_KONWENCJE.md) zbudowano walidacje na
+siatce punktow z samych map ECU: `python -m virtual_tdi validate --map-grid`
+(domyslnie 4 RPM x 3 IQ = 12 punktow; RPM 900-4500, IQ = 40/70/100% limitu
+SmokeLimitera). Referencja: fabryczna mapa BOOST (zadane cisnienie dolotu).
+
+**Wynik przed feedforward:** 4/12 PASS - coupling turbo PRZEWYMIAROWYJ boost
+przy czesciowych obciazeniach (+20% do +37%), zbiezny przy pelnym (+1-7%).
+Diagnoza: bez regulacji VNT cala energia spalin idzie w turbo, podczas gdy
+realny VNT przy niskich dawkach otwiera lopatki (bypass), zeby utrzymac
+cisnienie z mapy.
+
+**Fix: feedforward z fabrycznej mapy BOOST** (`boost_ceiling_pa` w
+`simulate_coupled_turbo_map`): zadane cisnienie z mapy ogranicza coupling.
+Wynik: **12/12 PASS** (odchyly -2% do -14%, wszystkie w tolerancji 15%).
+
+Korekta referencji peak-torque: 210 Nm (literatura, smoke-limit IQ ~38-40 mg)
+-> 192 Nm przy punkcie fabrycznym (1705 mbar, 36 mg) - model biega TERAZ w
+punkcie roboczym ECU, wiec referencja musi byc dla tego punktu.
+Walidacja klasyczna: 3/3 PASS.

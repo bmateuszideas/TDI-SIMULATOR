@@ -191,7 +191,7 @@
   - Parametry: delay EGT (rzędu sekund), delay MAP, szum MAF — z źródłami lub explicit assumptions.
   - AC: klasa `SensorModel` + test (przepływ sygnału, opóźnienie widoczne w śladzie).
 
-- [ ] **2.C.2 Pętle regulacji zamiast statycznych map**
+- [x] **2.C.2 Pętle regulacji zamiast statycznych map** — BoostPidConfig (PID na boost error → ER VNT, anti-windup) w transient; fix bisekcji PR poza gridem mapy
   - PID na boost i IQ sprzężone z fizycznym rdzeniem (po 2.A — bez turbo dynamiki nie ma sensu).
   - AC: test transient z pętlą boost closed-loop stabilny (bez oscylacji PR).
 
@@ -211,6 +211,13 @@
   że błąd systematyczny fizyki < akceptowalny dla celu ML.
 
 ---
+
+## Walidacja map-driven (obszar roboczy ECU)
+
+- [x] Siatka punktow z map ECU (RPM x IQ, limit SmokeLimitera jako gorna dawka)
+- [x] Feedforward z fabrycznej mapy BOOST jako sufit couplingu turbo (`boost_ceiling_pa`)
+- [x] `python -m virtual_tdi validate --map-grid` — 12/12 PASS (odchyly -2 do -14%)
+- [ ] (gdy poprawny plik EGR) walidacja MAF z mapy EGR na tej samej siatce
 
 ## Kryteria zgodności z manifestem (check na koniec każdej fazy)
 
