@@ -17,6 +17,11 @@ class CombustionScheduleRuntime:
     # Computed SOC (start of combustion) in radians once ignition delay is known.
     pilot_soc_rad: float | None = None
     main_soc_rad: float | None = None
+    # Diagnostics: ignition delays [deg] and whether the sanity cap was applied.
+    ign_delay_pilot_deg: float | None = None
+    ign_delay_main_deg: float | None = None
+    ign_delay_pilot_capped: bool = False
+    ign_delay_main_capped: bool = False
 
 
 def wiebe_dxb_dtheta(theta_rad: float, *, start_rad: float, duration_rad: float, a: float, m: float) -> float:
@@ -111,8 +116,23 @@ def heat_release_rate_dq_dtheta(
         
         dm_fuel_dtheta = float(np.interp(source_theta, profile_theta_rad, profile_dmdtheta_kg_rad, left=0.0, right=0.0))
         
-        # dQ/d(theta) = dm_fuel/d(theta) * LHV
-        return dm_fuel_dtheta * fuel.lhv_j_per_kg
+        # Main profile: dQ/d(theta) = dm_fuel/d(theta) * LHV * eta_comb.
+        # The hydraulic profile covers only the main shot; the pilot shot
+        # (default 12% of fuel energy) is still burned as classic Wiebe.
+        dq_main = dm_fuel_dtheta * fuel.lhv_j_per_kg * cfg.eta_comb
+        # Pilot shot is not part of the hydraulic profile: burn it as
+        # classic Wiebe on its own energy share of q_total_j.
+        dq_pilot = 0.0
+        if runtime.pilot_soc_rad is not None and schedule.pilot_fraction > 0.0:
+            q_p = q_total_j * max(0.0, min(1.0, schedule.pilot_fraction))
+            dq_pilot = q_p * wiebe_dxb_dtheta(
+                theta_rad,
+                start_rad=runtime.pilot_soc_rad,
+                duration_rad=schedule.duration_pilot_deg * DEG2RAD,
+                a=cfg.wiebe_a,
+                m=schedule.wiebe_m_pilot,
+            )
+        return dq_main + dq_pilot
 
     # Fallback to Wiebe models
     a = cfg.wiebe_a
@@ -152,9 +172,10 @@ def maybe_arm_combustion(
     air_mass_kg: float | None = None,
 ) -> CombustionScheduleRuntime:
     # Arm pilot/main SOC exactly once, when we pass SOI.
-    def compute_soc(soi_deg: float) -> float:
+    def compute_soc(soi_deg: float) -> tuple[float, bool]:
         if sim_cfg.combustion.ignition_delay_model == "fixed_deg":
             delay_deg = sim_cfg.combustion.fixed_ignition_delay_deg
+            capped = False
         else:
             tau_s = ignition_delay_seconds_arrhenius(
                 pressure_pa,
@@ -165,14 +186,39 @@ def maybe_arm_combustion(
             )
             delay_rad = tau_s * omega_rad_per_s(sim_cfg.rpm)
             delay_deg = delay_rad / DEG2RAD
-        return (soi_deg + delay_deg) * DEG2RAD
+            capped = False
+            cap = float(sim_cfg.combustion.ignition_delay_max_deg)
+            if cap > 0.0 and delay_deg > cap:
+                import warnings
+                warnings.warn(
+                    f"Ignition delay {delay_deg:.1f} deg at SOI {soi_deg:.1f} deg "
+                    f"exceeds sanity cap {cap:.1f} deg; clamping "
+                    f"(p={pressure_pa/1e5:.1f} bar, T={temperature_k:.0f} K).",
+                    stacklevel=2,
+                )
+                delay_deg = cap
+                capped = True
+        return (soi_deg + delay_deg) * DEG2RAD, capped
 
     pilot_soc = runtime.pilot_soc_rad
+    pilot_delay = runtime.ign_delay_pilot_deg
+    pilot_capped = runtime.ign_delay_pilot_capped
     if pilot_soc is None and theta_deg >= schedule.soi_pilot_deg:
-        pilot_soc = compute_soc(schedule.soi_pilot_deg)
+        pilot_soc, pilot_capped = compute_soc(schedule.soi_pilot_deg)
+        pilot_delay = (pilot_soc / DEG2RAD) - schedule.soi_pilot_deg
 
     main_soc = runtime.main_soc_rad
+    main_delay = runtime.ign_delay_main_deg
+    main_capped = runtime.ign_delay_main_capped
     if main_soc is None and theta_deg >= schedule.soi_main_deg:
-        main_soc = compute_soc(schedule.soi_main_deg)
+        main_soc, main_capped = compute_soc(schedule.soi_main_deg)
+        main_delay = (main_soc / DEG2RAD) - schedule.soi_main_deg
 
-    return CombustionScheduleRuntime(pilot_soc_rad=pilot_soc, main_soc_rad=main_soc)
+    return CombustionScheduleRuntime(
+        pilot_soc_rad=pilot_soc,
+        main_soc_rad=main_soc,
+        ign_delay_pilot_deg=pilot_delay,
+        ign_delay_main_deg=main_delay,
+        ign_delay_pilot_capped=pilot_capped,
+        ign_delay_main_capped=main_capped,
+    )

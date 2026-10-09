@@ -688,7 +688,11 @@ def main(argv: list[str] | None = None) -> int:
                 line_cfg = InjectionLineConfig(
                     length_m=args.line_length_m, diameter_mm=args.line_diameter_mm, segments=args.line_segments
                 )
-                p_cyl_approx = exhaust_manifold_config.initial_pressure_pa
+                # Cylinder pressure around main SOI (motored, near TDC):
+                # polytropic compression from intake conditions. Far more
+                # realistic than using exhaust manifold back-pressure (~1.15 bar).
+                _cr = geom.compression_ratio_from_geometry
+                p_cyl_approx = (args.p_intake_bar * 1e5) * (_cr ** 1.3)
                 
                 inj_res = solve_injection_hydraulics(
                     cam, rpm=args.rpm, iq_mg=iq_eff, fuel=fuel, nozzle=nozzle_cfg,

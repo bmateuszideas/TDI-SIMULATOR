@@ -1,6 +1,7 @@
 # Core numerics and thermodynamics (all imported by virtual_tdi)
-numpy==1.26.4
-scipy==1.13.1
+# numpy>=1.26: code is 2.x-compatible via _numpy_compat shims (trapz/trapezoid)
+numpy>=1.26,<3
+scipy>=1.13
 pyyaml==6.0.1
 coolprop==6.6.0
 fluids==1.0.26

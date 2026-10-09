@@ -30,7 +30,6 @@ out_*/
 !Mapa*.csv
 !SmokeLimiter*.csv
 !skok_tloczka_vp37*.csv
-!data/synthetic.csv
 *.png
 
 # IDE / editor

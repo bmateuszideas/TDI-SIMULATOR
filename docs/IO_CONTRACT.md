@@ -29,6 +29,12 @@ derived from the SI value and are listed explicitly below.
 | `q_comb_j_per_cyl` | J | Integrated combustion heat release. |
 | `q_wall_j_per_cyl` | J | Integrated wall heat loss. |
 | `exhaust_power_kw_est` | kW | Exhaust enthalpy power available to a turbine (per engine). |
+| `soc_pilot_deg_model` | deg | Start of combustion, pilot shot (SOI pilot + ignition delay). |
+| `soc_main_deg_model` | deg | Start of combustion, main shot (SOI main + ignition delay). |
+| `ign_delay_pilot_deg` | deg | Ignition delay of the pilot shot. |
+| `ign_delay_main_deg` | deg | Ignition delay of the main shot. |
+| `ign_delay_pilot_capped` | 0/1 | Whether the pilot delay was clamped by `ignition_delay_max_deg`. |
+| `ign_delay_main_capped` | 0/1 | Whether the main delay was clamped by `ignition_delay_max_deg`. |
 | `iq_cmd_mg_per_stroke` | mg | Commanded fuel quantity per stroke. |
 | `iq_mg_per_stroke` | mg | Fuel quantity per stroke after ECU limiting. |
 | `iq_eff_mg_per_stroke` | mg | Effective fuel quantity entering the cylinder model. |
@@ -73,6 +79,10 @@ derived from the SI value and are listed explicitly below.
 
 The CLI exports cycle data with columns named after their SI units (e.g., `pressure_pa`, `temperature_k`,
 `p_intake_pa`, `p_exhaust_pa`, `dq_comb_j_per_deg`). These headers are written verbatim to the CSV.
+
+Sign conventions: `mdot_intake_kg_s` is positive into the cylinder, `mdot_exhaust_kg_s` is
+**negative for outflow** from the cylinder (positive values = reverse flow back into the cylinder,
+e.g. valve overlap backflow).
 
 ## Dataset outputs (`virtual_tdi.dataset`)
 

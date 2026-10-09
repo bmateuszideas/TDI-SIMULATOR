@@ -149,7 +149,7 @@ parameters:
       unit: g
       source: "Calculated (total_conrod_mass / 4), a common engineering estimation."
     total_reciprocating_mass_per_cyl:
-      value: 750 # 440 + 120 + 40 + 145
+      value: 745 # 440 + 120 + 40 + 145
       unit: g
       source: "Calculated"
     

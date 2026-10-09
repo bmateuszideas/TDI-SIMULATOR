@@ -152,8 +152,10 @@ class HeatTransferConfig:
     head_temp_k: float = 500.0
     piston_temp_k: float = 550.0
     liner_temp_k: float = 450.0
-    # Woschni simplified constants: h = c * B^-0.2 * p_bar^0.8 * T^-0.55 * w^0.8
-    woschni_c: float = 3.26
+    # Woschni simplified: h = c * B^-0.2 * p_bar^0.8 * T^-0.55 * w^0.8 [W/m^2K]
+    # c = 127.93 is the constant for pressure in bar (equivalent to 3.26 with
+    # p in kPa), matching SPECYFIKACJA MATEMATYCZNA section 5.
+    woschni_c: float = 127.93
     # Gas velocity proxy: w = w_mult * mean_piston_speed
     w_mult: float = 6.0
 
@@ -170,6 +172,11 @@ class CombustionConfig:
     # Ignition delay model choice
     ignition_delay_model: Literal["arrhenius", "fixed_deg"] = "arrhenius"
     fixed_ignition_delay_deg: float = 5.0
+    # Sanity cap on the Arrhenius delay in degrees of crank angle. Uncapped,
+    # the correlation blows up at low charge temperatures (e.g. 168 deg at
+    # 30 bar / 600 K), placing SOC on the exhaust stroke and producing
+    # negative IMEP. Values above the cap are clamped and flagged in metrics.
+    ignition_delay_max_deg: float = 40.0
 
 
 @dataclass(frozen=True)
@@ -189,11 +196,11 @@ class SimulationConfig:
     gamma_max: float = 1.40
     combustion: CombustionConfig = CombustionConfig()
     heat_transfer: HeatTransferConfig = HeatTransferConfig()
-    thermo_backend: Literal["simple", "coolprop"] = "simple"
+    thermo_backend: Literal["simple", "coolprop"] = "coolprop"
     flow_backend: Literal["simple", "fluids"] = "simple"
     coolprop_fluid: str = "Air"
     strict_backends: bool = True
-    integrator: Literal["rk4", "scipy"] = "scipy"
+    integrator: Literal["rk4", "scipy"] = "rk4"
     scipy_method: str = "Radau"
     scipy_rtol: float = 1.0e-7
     scipy_atol: float = 1.0e-9

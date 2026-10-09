@@ -6,23 +6,19 @@ from typing import Any
 
 import numpy as np
 
-trapezoid = getattr(np, "trapezoid", None) or np.trapezoid if hasattr(np, "trapezoid") else np.trapz
-
 from .combustion import CombustionScheduleRuntime, heat_release_rate_dq_dtheta, maybe_arm_combustion
 from .fmep import calculate_fmep_from_config
 from .geometry import geometry_at_theta
 from .heat_transfer import h_woschni_simplified_w_per_m2_k
 from .models import EngineGeometry, Fuel, InjectionSchedule, SimulationConfig
 from .thermo import GasModel, omega_rad_per_s
-
+from ._numpy_compat import trapezoid
 
 DEG2RAD = pi / 180.0
-
 
 def _mean_wall_temp_k(cfg: SimulationConfig) -> float:
     ht = cfg.heat_transfer
     return (ht.head_temp_k + ht.piston_temp_k + ht.liner_temp_k) / 3.0
-
 
 @dataclass(frozen=True)
 class SimulationResult:
@@ -36,7 +32,6 @@ class SimulationResult:
     gamma: np.ndarray
     metrics: dict[str, Any]
 
-
 def _rk4_step_pressure(
     theta_rad: float,
     pressure_pa: float,
@@ -49,7 +44,6 @@ def _rk4_step_pressure(
     k3 = deriv(theta_rad + 0.5 * step_rad, pressure_pa + 0.5 * step_rad * k2)
     k4 = deriv(theta_rad + step_rad, pressure_pa + step_rad * k3)
     return pressure_pa + (step_rad / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
-
 
 def simulate_closed_cycle(
     geom: EngineGeometry,
@@ -68,8 +62,10 @@ def simulate_closed_cycle(
 
     geom0 = geometry_at_theta(geom, theta_rad[0])
     V0 = geom0.volume_m3
-    # Initial mass from intake state at start angle.
-    mass_kg = cfg.intake_pressure_pa * V0 / (gas.r_j_per_kg_k * cfg.intake_temp_k)
+    # Initial mass from intake state at start angle - use the configured
+    # thermo backend (consistent with the scipy integrator path).
+    rho0 = gas.density_from_pT(cfg.intake_pressure_pa, cfg.intake_temp_k, cfg)
+    mass_kg = rho0 * V0
 
     q_total_j = (cfg.fuel_mg_per_cycle_per_cyl * 1e-6) * fuel.lhv_j_per_kg * cfg.combustion.eta_comb
 
@@ -208,7 +204,6 @@ def simulate_closed_cycle(
         gamma=gamma,
         metrics=metrics,
     )
-
 
 def simulate_closed_cycle_scipy(
     geom: EngineGeometry,

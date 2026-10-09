@@ -18,8 +18,8 @@ Full-chem nie jest wymagany.
 - [ ] Testy trendow IMEP/EGT/BSFC po zmianach
 
 ## Warstwa 2b: hydraulika i wtrysk
-- [x] `virtual_tdi/hydraulics.py`: fala cisnienia w przewodzie
-- [ ] `virtual_tdi/vp37.py`: dynamika iglicy i wielofazowy wtrysk
+- [x] `virtual_tdi/injection.py` (nie hydraulics.py): fala cisnienia w przewodzie (1D lumped line)
+- [x] dynamika iglicy: zaimplementowana w `virtual_tdi/injection.py` (NeedleConfig + solve_injection_hydraulics); wielofazowosc (pilot/main area) czesciowo
 - [x] `virtual_tdi/combustion.py`: zaplon zasilany profilem wtrysku z hydrauliki
 
 ## Warstwa 3: inteligencja (ECU)

@@ -6,6 +6,7 @@ from math import pi, sqrt
 from .models import Fuel
 from .hydraulics import NozzleConfig, VP37HydraulicConfig, NeedleConfig
 from .vp37_cam import VP37CamProfile
+from ._numpy_compat import trapezoid
 
 @dataclass
 class InjectionLineConfig:
@@ -75,7 +76,11 @@ def solve_injection_hydraulics(
     results = {k: np.zeros_like(time_s) for k in ["line_pressure_pa", "needle_lift_m", "mdot_fuel_kg_s"]}
     
     # Spring preload force from opening pressure
+    # Opening thresholds are gauge pressures relative to the cylinder
+    # back-pressure (consistent with estimate_pilot_ratio in hydraulics.py):
+    # the pilot phase opens at pilot_open_bar, full area at main_open_bar.
     f_preload_pilot = nozzle.pilot_open_bar * 1e5 * needle.seat_area_m2
+    f_preload_main = nozzle.main_open_bar * 1e5 * needle.seat_area_m2
     
     for i in range(n_steps - 1):
         deriv = np.zeros_like(state)
@@ -96,8 +101,18 @@ def solve_injection_hydraulics(
 
         deriv[-2], deriv[-1] = v_new - v_needle, a_needle
         
-        # Nozzle flow
-        area_eff = nozzle.area_m2 * nozzle.discharge_coeff * (x_new / needle.max_lift_m)
+        # Nozzle flow: restricted pilot area fraction until the line pressure
+        # reaches the main opening threshold, then the full geometric area.
+        x_frac = x_new / needle.max_lift_m
+        if f_pressure >= f_preload_main:
+            area_eff = nozzle.area_m2 * nozzle.discharge_coeff * x_frac
+        else:
+            area_eff = (
+                nozzle.area_m2
+                * nozzle.discharge_coeff
+                * max(nozzle.pilot_area_frac, 1e-6)
+                * x_frac
+            )
         dp_nozzle = max(0.0, p_injector - p_back)
         m_dot_noz = area_eff * sqrt(2.0 * rho * dp_nozzle)
         q_nozzle = m_dot_noz / rho
@@ -119,10 +134,24 @@ def solve_injection_hydraulics(
 
         state += deriv * dt
         state[-2], state[-1] = x_new, v_new # Update needle state separately
-        state[::2] = np.maximum(p_back, state[::2])
+        # Clamp needle state after the line update to respect seat/stop limits.
+        state[-2] = min(max(0.0, state[-2]), needle.max_lift_m)
+        # Clamp line pressures only (odd slicing would miss them); state[-2]
+        # holds needle lift and must NOT be overwritten by the pressure floor.
+        state[:2 * N:2] = np.maximum(p_back, state[:2 * N:2])
 
     results["line_pressure_pa"][-1] = state[-4]
     results["needle_lift_m"][-1] = state[-2]
-    
+
+    # Normalize the injected mass to the commanded IQ: the 1D line model is
+    # not mass-conservative by construction (lumped segments, needle opening
+    # thresholds), so scale mdot so that the crank-angle integral equals iq_mg.
+    omega_crank = rpm * 2.0 * pi / 60.0
+    theta_rad = time_s * omega_crank
+    dmdtheta = results["mdot_fuel_kg_s"] / max(1e-12, omega_crank)
+    injected_mg = float(trapezoid(dmdtheta, theta_rad)) * 1e6 if time_s.size > 1 else 0.0
+    if injected_mg > 1e-9 and iq_mg > 0.0:
+        results["mdot_fuel_kg_s"] *= (iq_mg / injected_mg)
+
     return InjectionResult(time_s, results["line_pressure_pa"], results["needle_lift_m"], results["mdot_fuel_kg_s"])
 

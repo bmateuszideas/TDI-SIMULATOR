@@ -35,7 +35,6 @@ class DatasetConfig:
     use_boost_map: bool = False
     p_intake_bar_min: float = 1.0
     p_intake_bar_max: float = 1.8
-    p_amb_bar: float = 1.0
     p_exhaust_bar: float = 1.15
     t_exhaust_k: float = 800.0
     t_intake_k: float = 300.0
@@ -377,7 +376,6 @@ def _make_argparser() -> argparse.ArgumentParser:
     p.add_argument("--use-boost-map", action="store_true")
     p.add_argument("--p-intake-min", type=float, default=1.0, help="Physics mode: intake pressure min [bar abs]")
     p.add_argument("--p-intake-max", type=float, default=1.8, help="Physics mode: intake pressure max [bar abs]")
-    p.add_argument("--p-amb-bar", type=float, default=1.0, help="Ambient pressure [bar abs]")
     p.add_argument("--fuel-temp-min", type=float, default=20.0)
     p.add_argument("--fuel-temp-max", type=float, default=90.0)
     p.add_argument("--iq-basis", choices=["mass", "volume"], default="mass")
@@ -394,7 +392,7 @@ def _make_argparser() -> argparse.ArgumentParser:
     strict_group.add_argument("--strict-backends", dest="strict_backends", action="store_true")
     strict_group.add_argument("--no-strict-backends", dest="strict_backends", action="store_false")
     p.set_defaults(strict_backends=True)
-    p.add_argument("--integrator", choices=["rk4", "scipy"], default="scipy")
+    p.add_argument("--integrator", choices=["rk4", "scipy"], default="rk4")
     p.add_argument("--scipy-method", type=str, default="Radau")
     p.add_argument("--scipy-rtol", type=float, default=1.0e-7)
     p.add_argument("--scipy-atol", type=float, default=1.0e-9)
@@ -425,7 +423,6 @@ def main(argv: list[str] | None = None) -> int:
         use_boost_map=bool(args.use_boost_map),
         p_intake_bar_min=float(args.p_intake_min),
         p_intake_bar_max=float(args.p_intake_max),
-        p_amb_bar=float(args.p_amb_bar),
         fuel_temp_min_c=float(args.fuel_temp_min),
         fuel_temp_max_c=float(args.fuel_temp_max),
         n146_mv_min=float(args.n146_mv_min),
