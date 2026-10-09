@@ -55,11 +55,12 @@ def main(argv: list[str] | None = None) -> int:
         "--variant", action="append", required=True,
         metavar="NAME[:nozzle-diameter=0.205|soi-offset=-2|boost-bar=1.8|fuel-mg=30]",
         help="Variant spec: name[:key=value|key=value...]. "
-             "Supported keys: nozzle-diameter, nozzle-holes, soi-offset, "
-             "boost-bar (p-intake), fuel-mg. NOTE: at a fixed commanded IQ the "
-             "nozzle changes injection rate/phasing (hydraulic path), not the "
-             "total fuel mass - differences vs stock are physically small by "
-             "design; combine with fuel-mg/boost-bar to explore limits.")
+             "Hardware/calibration: nozzle-diameter, nozzle-holes, soi-offset, "
+             "boost-bar (p-intake), fuel-mg, nozzle-worn (=cd 0.55). "
+             "Fault injection (physical reaction to the fault): "
+             "egr-stuck-open[=frac], egr-off, boost-leak=frac, "
+             "maf-underread[=frac]. NOTE: at a fixed commanded IQ a nozzle "
+             "change alters rate/phasing, not fuel mass - small by design.")
     parser.add_argument("--workdir", type=Path, default=None)
     args = parser.parse_args(argv)
 
@@ -86,9 +87,9 @@ def main(argv: list[str] | None = None) -> int:
         if kv_str:
             for kv in kv_str.split("|"):
                 key, _, value = kv.partition("=")
-                if not value:
-                    print(f"Invalid variant spec: {spec}", file=sys.stderr)
-                    return 2
+                # Boolean-style keys (egr-stuck-open, egr-off, nozzle-worn,
+                # maf-underread) may appear without a value; defaults are
+                # applied in the handling branch below.
                 if key == "nozzle-diameter":
                     extra += ["--nozzle-diameter-mm", value]
                 elif key == "nozzle-holes":
@@ -99,6 +100,26 @@ def main(argv: list[str] | None = None) -> int:
                     extra += ["--p-intake-bar", value]
                 elif key == "fuel-mg":
                     extra += ["--fuel-mg", value]
+                elif key == "egr-stuck-open":
+                    # EGR stuck open: intake diluted with exhaust gas -> less
+                    # fresh air, smoke limiter derates IQ (physical reaction).
+                    extra += ["--egr-fraction", value] if value else ["--egr-fraction", "0.30"]
+                elif key == "egr-off":
+                    extra += ["--egr-fraction", "0.0"]
+                elif key == "boost-leak":
+                    # Boost leak: intake manifold pressure drops by the leak
+                    # fraction (physical: pressure loss to atmosphere).
+                    extra += ["--boost-leak-frac", value] if value else []
+                elif key == "nozzle-worn":
+                    # Worn nozzle: lower opening pressure + worse atomization ->
+                    # modeled as reduced discharge coefficient (physical).
+                    extra += ["--nozzle-cd", "0.55"]
+                elif key == "maf-underread":
+                    # MAF underread: sensor reads low by the given fraction ->
+                    # ECU smoke-limits IQ on wrong (low) airflow (physical chain;
+                    # requires the ECU limits path to be active).
+                    extra += ["--ecu", "limit"]
+                    extra += ["--maf-underread-frac", value] if value else ["--maf-underread-frac", "0.15"]
                 else:
                     print(f"Unknown variant key: {key}", file=sys.stderr)
                     return 2
