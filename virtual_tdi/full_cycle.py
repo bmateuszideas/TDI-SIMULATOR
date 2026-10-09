@@ -55,7 +55,7 @@ class FullCycleConfig:
     vp37_cam_profile: VP37CamProfile | None = None
     vp37_iq_max_mg: float = 51.0
     vp37_delivery_start_frac: float = 0.40
-    reciprocating_mass_kg: float = 0.73
+    reciprocating_mass_kg: float = 0.745
     injection_profile: tuple[np.ndarray, np.ndarray] | None = None
     models: SimulationConfig = field(default_factory=lambda: SimulationConfig(rpm=1500.0))
     m_min_kg: float = 1.0e-7

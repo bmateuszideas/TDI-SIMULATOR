@@ -37,7 +37,7 @@ Full-chem nie jest wymagany.
 - [x] `docs/BASELINE_MAPY_ECU_I_OSPRZET.md`: opis map i osprzetu
 - [x] Mapy ECU: `Mapa*SOI*Table 1.csv`, `Mapa*N146*Table 1.csv`, `SmokeLimiter*.csv`, `Mapa_EGR*.csv`, `Mapa_BOOST*.csv`
 - [x] Profile: `profil_krzywek*.md`, `skok_tloczka_vp37_de110.csv`
-- [ ] `specs_with_sources.md`: uzupelnione parametry i zrodla
+- [ ] `docs/sources/specs_with_sources.md`: uzupelnione parametry i zrodla
 
 ## Walidacja i testy
 - [x] Zestawy porownawcze: P-theta, IMEP, EGT, BSFC (validation/reference_points.yaml + `python -m virtual_tdi validate`)

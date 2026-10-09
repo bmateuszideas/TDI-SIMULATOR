@@ -3,15 +3,21 @@
 Ten dokument spisuje rozbieznosci i kolejnosc prac tak, aby projekt byl zgodny z manifestem.
 Pelna kinetyka chemiczna (full-chem) nie jest wymagana na tym etapie.
 
-## 1) Rozbieznosci vs manifest (stan obecny)
+## 1) Rozbieznosci vs manifest (stan obecny, po M2-M4)
+Zrobione (domkniete w PR #10-#13):
+- Kolektory dynamiczne (0D, bilanse masy/energii, stan EGR) - gazowymiana z oryficzem 0D przez zawory, z przeplywami odwrotnymi.
+- Hydraulika wtrysku: fala cisnienia 1D (lumped line) w przewodzie + dynamika iglicy (NeedleConfig); HRR z profil hydraulicznego; wtrysk wielofazowy pilot/main.
+- Wymiana ciepla: Woschni uproszczony z modelem scian (denko/tlok/tuleja, 3 powierzchnie); temperatury scian czytelne z YAML/CLI.
+- Opuznienie zaplonu Arrhenius z capem sanity (40 deg) + diagnostyka SOC/delay w metrykach.
+
+Nadal otwarte:
 - Geometria/kinematyka: czesc danych ma wartosci domyslne, nie wszystkie maja twarde zrodla pomiarowe.
-- Gazowymiana: przeplyw przez zawory jako oryficz 0D, brak modeli kolektorow i fal cisnienia.
-- Termodynamika: idealny gaz + opcjonalny CoolProp, ale bez mieszanin spalin/paliwa.
-- Wymiana ciepla: korelacja Woschni (uproszczona, empiryczna).
-- Hydraulika wtrysku: uproszczone modele VP37 i przewodu, brak dynamiki iglicy i fal cisnienia.
-- Turbo: prosty bilans mocy bez map sprzezarki/turbiny i bez dynamiki.
-- ECU: mapy i proste reguly, brak modelu percepcji (czujniki, opoznienia, filtry).
-- Dane i parametry: czesc "magicznych" wartosci bez jawnego zrodla.
+- Termodynamika: idealny gaz + opcjonalny CoolProp (czyste powietrze), ale bez mieszanin spalin/paliwa; masa paliwa nie plynie do masy ladunku (~4%, udokumentowane w README).
+- Wymiana ciepla: Woschni uproszczony (sta `w_mult`/temperatury scian) - do skalibracji na punktach referencyjnych (Faza 1 w TODO.md).
+- Turbo: prosty bilans mocy bez map sprezarki/turbiny i bez dynamiki waka.
+- ECU: mapy i proste reguly (governor PI), brak modelu percepcji (czujniki, opoznienia, filtry).
+- Walidacja: brak jakiegokolwiek zestawu porownawczego z danych rzeczywistych (P-theta, IMEP, EGT, BSFC) - priorytet Faza 1 w TODO.md.
+- Dane i parametry: czesc "magicznych" wartosci bez jawnego zrodla (audyt po Fazie 0 w TODO.md).
 
 ## 1.1) Zrodla danych w repo (start)
 - `engine_reference_sources.yaml` (parametry bazowe + zrodla)
@@ -24,7 +30,7 @@ Pelna kinetyka chemiczna (full-chem) nie jest wymagana na tym etapie.
   - `Mapa_BOOST*.csv`
 - Profil rozrzadu: `profil_krzywek*.md`
 - Profil VP37: `skok_tloczka_vp37_de110.csv`
-- Dodatkowe zrodla: `specs_with_sources.md`
+- Dodatkowe zrodla: `docs/sources/specs_with_sources.md`
 
 ## 2) Priorytety (bez full-chem)
 1. Twarde dane i zrodla:

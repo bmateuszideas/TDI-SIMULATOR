@@ -12,20 +12,20 @@
 
 ### 0.A Konflikty danych źródłowych ("source of truth")
 
-- [ ] **0.A.1 Ujednolicić średnice zaworów (D1)**
+- [x] **0.A.1 Ujednolicić średnice zaworów (D1)**
   - Kanon: `engine_reference_sources.yaml` (ssący 35.95 mm, wydechowy 31.45 mm, wznios 8.5 mm).
-  - Poprawić `specs_with_sources.md` §3 (dziś: 34.0/29.0 mm, ~9.0 mm — sprzeczne z kanonem).
+  - Poprawić `docs/sources/specs_with_sources.md` §3 (dziś: 34.0/29.0 mm, ~9.0 mm — sprzeczne z kanonem).
   - Sprawdzić, czy `docs/PARAMETRY_SILNIKA.md` jest zgodny (dziś: tak).
-  - AC: `grep -rn "34.0\|29.0" docs/ specs_with_sources.md` nie zwraca średnic zaworów; testy geometrii zielone.
+  - AC: `grep -rn "34.0\|29.0" docs/ docs/sources/specs_with_sources.md` nie zwraca średnic zaworów; testy geometrii zielone.
 
-- [ ] **0.A.2 Rozstrzygnąć masy posuwiste (D2)**
+- [x] **0.A.2 Rozstrzygnąć masy posuwiste (D2)**
   - Przyjąć 745 g (YAML: 440+120+40+145) jako kanon.
   - `reciprocating_mass_kg=0.73` w `virtual_tdi/full_cycle.py:58` → 0.745 ALBO usunąć parametr jako martwy.
   - Decyzja: zostawić parametr (plan: siły inercyjne w przyszłości) czy usunąć (YAGNI)?
     → zostawiamy + komentarz w YAML, usuwamy z `coupled.py` przenoszenie, jeśli nieużywane.
   - AC: jedna wartość masy w YAML/kodzie; `grep -rn "0.73\|750 g"` czysty.
 
-- [ ] **0.A.3 Przenieść temperatury ścian do YAML (D3)**
+- [x] **0.A.3 Przenieść temperatury ścian do YAML (D3)**
   - Dziś hardcoded: `models.py:152-154` (head 500 K, piston 550 K, liner 450 K).
   - Dodać do `engine_reference_sources.yaml` (sekcja heat transfer) + obsługa w `config_loader.py`.
   - Dodać CLI/GUI parametry (np. `--wall-temp-head-k` itd.) — spójne z resztą kontraktu parametrów.
@@ -33,48 +33,48 @@
 
 ### 0.B Dokumentacja nieaktualna
 
-- [ ] **0.B.1 Odświeżyć `docs/ROADMAP_CYFROWY_DUCH.md` §1 (R1/D4)**
+- [x] **0.B.1 Odświeżyć `docs/ROADMAP_CYFROWY_DUCH.md` §1 (R1/D4)**
   - Przenieść do "zrobione": kolektory dynamiczne, fala 1D w przewodzie, dynamika iglicy, model ścian (3 powierzchnie), model opóźnienia zapłonu z cap.
   - Zostawić jako otwarte: turbo (mapy+dynamika), mieszaniny spalin, percepcja ECU, walidacja na danych referencyjnych.
   - AC: ROADMAP §1 zgodny z CHECKLIST (żadnej pozycji zaznaczonej [x] w checklist opisanej jako "brak" w roadmap).
 
-- [ ] **0.B.2 Docstring `virtual_tdi/__init__.py` (D6)**
+- [x] **0.B.2 Docstring `virtual_tdi/__init__.py` (D6)**
   - Zamienić "starts with a practical MVP: 0D closed-cylinder cycle" na opis stanu faktycznego
     (pełny cykl 720°, kolektory, VP37 hydraulika, ECU maps, transient, dataset, GUI).
   - AC: docstring odzwierciedla 4 tryby pracy.
 
-- [ ] **0.B.3 Uporządkować dokumenty w root repo (R5)**
-  - Przenieść do `docs/sources/`: `kompletna_lista_z_danymi_SCALONA.md`,
-    `kompletna_lista_z_danymi_rozszerzona.md`, `kompletna_lista_z_danymi_rozszerzona_pelna.md`,
-    `uzupelniona_lista_z_danymi_i_zrodlami.md`, `specs_with_sources.md`,
-    `SPECYFIKACJA MATEMATYCZNA SOLVERA_ 1.9 TDI COGENERATION ENGINE.md`,
-    `tabela_danych_pochodnych_i_bezposrednich.md`.
-  - `RAPORT_IMEP_I_KATALOG.md` → `docs/history/` (już ma nagłówek "historyczny").
+- [x] **0.B.3 Uporządkować dokumenty w root repo (R5)**
+  - Przenieść do `docs/sources/`: `docs/sources/kompletna_lista_z_danymi_SCALONA.md`,
+    `docs/sources/kompletna_lista_z_danymi_rozszerzona.md`, `docs/sources/kompletna_lista_z_danymi_rozszerzona_pelna.md`,
+    `docs/sources/uzupelniona_lista_z_danymi_i_zrodlami.md`, `docs/sources/specs_with_sources.md`,
+    `docs/sources/SPECYFIKACJA MATEMATYCZNA SOLVERA_ 1.9 TDI COGENERATION ENGINE.md`,
+    `docs/sources/tabela_danych_pochodnych_i_bezposrednich.md`.
+  - `docs/history/RAPORT_IMEP_I_KATALOG.md` → `docs/history/` (już ma nagłówek "historyczny").
   - Zaktualizować wszystkie ścieżki w README/docs (linki do przeniesionych plików).
   - AC: `git mv` + wszystkie linki działają (grep po starych ścieżkach czysty); testy i CI zielone.
 
 ### 0.C Konflikty konfiguracji / kodu
 
-- [ ] **0.C.1 Związać defaulty `DatasetConfig` z CLI dataseta (D8)**
+- [x] **0.C.1 Związać defaulty `DatasetConfig` z CLI dataseta (D8)**
   - Dziś: dataclass (`dataset.py:66,72`) = `simple`/`scipy`; CLI defaults = `coolprop`/`rk4`.
   - Rozstrzygnięcie: jedna para defaultów (rekomendacja: `simple`/`rk4` — szybkość i determinizm
     generatora; coolprop do analiz pojedynczych cykli).
   - AC: dataclass i CLI mają identyczne defaulty; test porównujący oba źródła defaultów.
 
-- [ ] **0.C.2 Zaudytować oś IQ w `Mapa_BOOST*.csv` (R2)**
+- [x] **0.C.2 Zaudytować oś IQ w `Mapa_BOOST*.csv` (R2)**
   - Kod ostrzega: wartości > 60 mg/suw (np. 85.0) niefizyczne.
   - Zweryfikować jednostki pliku (może to mg/stroke × inna baza, może złą kolumna).
   - Jeśli CSV błędne → poprawić; jeśli poprawne → udokumentować zakres w
     `docs/BASELINE_MAPY_ECU_I_OSPRZET.md` i wyciszyć/uszczegółowić warning.
   - AC: brak UserWarning przy smoke run `--use-boost-map` ALBO wyjaśnienie w docs.
 
-- [ ] **0.C.3 Zdefiniować politykę pinningów zależności (D10)**
+- [x] **0.C.3 Zdefiniować politykę pinningów zależności (D10)**
   - `requirements.txt` (`==`) vs `pyproject.toml` (`>=`) — świadoma decyzja:
     app (requirements) pinnie, biblioteka (pyproject) zakresowo.
   - Zapisać politykę w `docs/WORKFLOW.md` §Dependencies.
   - AC: docs opisują politykę; requirements i pyproject zgodne z polityką.
 
-- [ ] **0.C.4 Drobiazgi README (D10)**
+- [x] **0.C.4 Drobiazgi README (D10)**
   - Literówka "Opoznienie zaplonu" (sekcja spalania?), powtórzona numeracja "2)".
   - AC: README czytany bez błędów numeracji.
 
@@ -91,7 +91,7 @@
   - `pyproject.toml` deklaruje v0.2.0, a w repo nie ma ani jednego taga.
   - AC: tag `v0.2.0` na commicie po Fazie 0; (opcjonalnie GitHub Release z changelogiem).
 
-- [ ] **0.D.4 Opcjonalnie: `requirements-dev.txt`** (AGENTS.md o nim wspomina, nie istnieje).
+- [x] **0.D.4 Opcjonalnie: `requirements-dev.txt`** (AGENTS.md o nim wspomina, nie istnieje).
   - AC: plik istnieje z dev-toolingiem (np. lint) LUB usunąć wzmiankę z AGENTS.md.
 
 ---

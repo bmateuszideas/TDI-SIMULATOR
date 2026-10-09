@@ -63,13 +63,13 @@ class DatasetConfig:
     chamber_volume_mm3: float = 200.0
     line_volume_mm3: float = 400.0
     back_pressure_bar: float = 50.0
-    thermo_backend: str = "simple"
+    thermo_backend: str = "coolprop"
     flow_backend: str = "simple"
     coolprop_fluid: str = "Air"
     ignition_delay_model: str = "arrhenius"
     ignition_delay_deg: float = 5.0
     strict_backends: bool = True
-    integrator: str = "scipy"
+    integrator: str = "rk4"
     scipy_method: str = "Radau"
     scipy_rtol: float = 1.0e-7
     scipy_atol: float = 1.0e-9

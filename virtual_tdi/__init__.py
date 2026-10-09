@@ -1,7 +1,10 @@
 """Virtual 1.9 TDI ("cyfrowy duch") - white-box engine cycle simulator.
 
-This package starts with a practical MVP: 0D closed-cylinder cycle (compression +
-combustion + expansion) integrated in crank angle domain with RK4.
+White-box 0D simulator of the VW 1.9 TDI (ALH, VP37) with four modes:
+full 720-degree cycle (dynamic manifolds, gas exchange, EGR), closed cycle
+(RK4/SciPy), MVEM transient (PI governor, turbo lag), and a Monte Carlo
+dataset generator for ML/DL. ECU layer: factory SOI/N146/SmokeLimiter/EGR/Boost
+maps. Injection: VP37 cam profile, 1D line hydraulics, needle dynamics.
 """
 
 from .coupled import CoupledResult, simulate_coupled_turbo
