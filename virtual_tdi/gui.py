@@ -165,10 +165,6 @@ SETTING_SPECS: dict[str, list[dict]] = {
         _spec("scipy_rtol", "SciPy: rtol", modes="full,closed,transient"),
         _spec("scipy_atol", "SciPy: atol", modes="full,closed,transient"),
         _spec("scipy_max_step_deg", "SciPy: max step [deg]", modes="full,closed,transient"),
-        _spec("sensitivity", "Analiza wrażliwości", modes="full,closed,transient"),
-        _spec("sens_params", "Sens: parametry", modes="full,closed,transient"),
-        _spec("sens_metrics", "Sens: metryki", modes="full,closed,transient"),
-        _spec("sens_step", "Sens: krok", modes="full,closed,transient"),
     ],
     "Wyjście": [
         _spec("out", "Katalog wyjściowy", modes="full,closed,transient"),

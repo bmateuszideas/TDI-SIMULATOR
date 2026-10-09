@@ -21,12 +21,17 @@ htmlcov/
 build/
 dist/
 
-# Outputs / data artifacts
+# Outputs / data artifacts (keep factory ECU maps and source data)
 out/
 out_*/
-*.png
-*.csv
 *.log
+# Generated CSV/PNG are ignored EXCEPT factory maps and tracked source data
+*.csv
+!Mapa*.csv
+!SmokeLimiter*.csv
+!skok_tloczka_vp37*.csv
+!data/synthetic.csv
+*.png
 
 # IDE / editor
 .vscode/

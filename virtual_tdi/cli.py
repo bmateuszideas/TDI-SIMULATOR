@@ -214,7 +214,7 @@ def _make_argparser() -> argparse.ArgumentParser:
     p.add_argument(
         "--flow-backend",
         choices=["simple", "fluids"],
-        default="fluids",
+        default="simple",
         help="Flow model backend for orifice mass flow.",
     )
     p.add_argument("--coolprop-fluid", type=str, default="Air", help="CoolProp fluid name (e.g. Air).")
@@ -234,10 +234,6 @@ def _make_argparser() -> argparse.ArgumentParser:
     p.add_argument("--scipy-rtol", type=float, default=1.0e-7)
     p.add_argument("--scipy-atol", type=float, default=1.0e-9)
     p.add_argument("--scipy-max-step-deg", type=float, default=1.0)
-    p.add_argument("--sensitivity", action="store_true", help="Compute local sensitivities via numdifftools.")
-    p.add_argument("--sens-params", type=str, default="fuel_mg,soi_main,p_intake_bar", help="Comma-separated parameters.")
-    p.add_argument("--sens-metrics", type=str, default="brake_torque_nm_est,peak_pressure_pa,imep_pa", help="Comma-separated metrics.")
-    p.add_argument("--sens-step", type=float, default=1e-3, help="Perturbation step for sensitivities.")
     p.add_argument(
         "--vp37-cam",
         type=Path,

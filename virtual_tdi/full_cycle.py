@@ -479,7 +479,7 @@ def simulate_full_cycle(
     indicated_torque_nm = (imep_pa * geom.swept_volume_m3_per_cyl * geom.cylinders) / (4.0 * pi)
     pmax_pa = float(np.max(results["pressure"]))
     fmep_pa = calculate_fmep_from_config(cfg.models, pmax_pa)
-    brake_torque_nm = max(0.0, (imep_pa - fmep_pa) * geom.swept_volume_m3_per_cyl * geom.cylinders / (4.0 * pi))
+    brake_torque_nm = (imep_pa - fmep_pa) * geom.swept_volume_m3_per_cyl * geom.cylinders / (4.0 * pi)
     power_w = brake_torque_nm * omega
     
     dt = (cfg.step_deg * DEG2RAD) / max(1e-9, omega)

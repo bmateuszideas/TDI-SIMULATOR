@@ -148,3 +148,44 @@ class TestTransient(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTransientStability(unittest.TestCase):
+    """Integral stability test mirroring the README transient command.
+
+    Guards against governor bang-bang (IQ saturating 0<->max every couple of
+    steps), which previously made the mode unusable at default settings.
+    """
+
+    def test_readme_scenario_stabilizes(self):
+        cfg = TransientConfig(
+            t_end_s=8.0,
+            dt_s=0.1,
+            rpm_start=1450.0,
+            rpm_target=lambda t: 1500.0,
+            load_torque_nm_fn=lambda t: 80.0 if t >= 3.0 else 0.0,
+            cycles_per_point=1,
+        )
+        res = run_transient(
+            _geom(),
+            Fuel.diesel(),
+            _sched_builder,
+            cfg,
+            models=SimulationConfig(rpm=1500.0),
+            valve_timing=ValveTiming(),
+            valve_flow=ValveFlow(),
+            step_deg=2.0,
+        )
+        tail = res.samples[-10:]
+        # Speed settles near the 1500 rpm target after the load step.
+        mean_rpm = sum(s.rpm for s in tail) / len(tail)
+        self.assertGreater(mean_rpm, 1450.0)
+        self.assertLess(mean_rpm, 1550.0)
+        # No bang-bang: IQ changes are bounded in the settling window.
+        deltas = [
+            abs(tail[i + 1].fuel_mg - tail[i].fuel_mg) for i in range(len(tail) - 1)
+        ]
+        self.assertLess(max(deltas), 5.0)
+        # Engine carries the load: brake torque matches 80 Nm within tolerance.
+        self.assertGreater(tail[-1].brake_torque_nm, 70.0)
+        self.assertLess(tail[-1].brake_torque_nm, 90.0)

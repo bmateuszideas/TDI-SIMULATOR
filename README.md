@@ -36,6 +36,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Opcjonalne narzędzia ML/DL i kalibracji (nieużywane przez rdzeń symulatora) są w `requirements-ml.txt`.
+
 2) Sprawdź CLI:
 
 ```
@@ -114,7 +116,7 @@ Wyniki:
 - Jeśli masz `skok_tloczka_vp37_de110.csv`, możesz też ustawić `--hrr-model vp37_main`, żeby kształt wydzielania ciepła main był oparty o kształt dm_fuel/dθ z VP37 (pilot nadal Wiebe). W `cycle.csv` pojawia się `dm_fuel_main_mg_per_deg`.
 - Jeśli masz `SmokeLimiter___interpolowana_mapa_maksymalnego_IQ.csv` i `Mapa_EGR___interpolowana_mapa_MAF.csv`, tryb `--ecu limit` ogranicza IQ przez smoke limiter (na podstawie MAF target z mapy EGR) i zapisuje `maf_target_mg_per_stroke` oraz `smoke_iq_max_mg_per_stroke` w `metrics.txt`.
 - Jeśli masz `Mapa_BOOST___interpolowana_mapa_ci_nienia_do_adowania.csv`, w `metrics.txt` pojawia się `boost_target_mbar_abs` (oraz opcjonalnie `--use-boost-map` ustawia `p_intake` jako ciśnienie względem atmosfery: `boost_target_mbar_abs - p_amb`).
-- Opcjonalne backendy fizyki: `--thermo-backend coolprop`, `--flow-backend fluids`.
+- Opcjonalne backendy fizyki: `--thermo-backend coolprop`, `--flow-backend fluids` (domyślnie `simple`).
 - Opoznienie zaplonu: `--ignition-delay arrhenius|fixed_deg` (dla `fixed_deg` ustaw `--ignition-delay-deg`).
 
 ## Tests
@@ -130,6 +132,8 @@ CI działa na GitHub Actions (Python 3.12) i uruchamia testy z katalogu `tests`.
 Symulacja pracy silnika w czasie: governor PI steruje dawką (IQ), wał korbowy ma bezwładność, dolot podąża za celem boost z opóźnieniem turbo (stała czasowa 1. rzędu). W każdym kroku czasowym liczony jest pełny cykl 720°.
 
 `python -m virtual_tdi --mode transient --rpm 1500 --rpm-start 1450 --rpm-target 1500 --load-torque-nm 80 --load-step-s 3 --transient-end-s 8 --transient-dt-s 0.1 --out out`
+
+Uwaga: kroku czasowego transient nie należy powiększać powyżej ~0.1 s — jawny Euler całkowania wałka korbowego (inercja 0.35 kg·m²) traci wtedy stabilność. Dawka paliwa jest ograniczona szybkością zmiany `dq_drop_rate_s` (mg/s), co modeluje bezwładność pompy VP37.
 
 Wyniki:
 - `out/transient.csv` (rpm, IQ, moment hamowniczy, obciążenie, moc, p_intake, IMEP, peak pressure w czasie)

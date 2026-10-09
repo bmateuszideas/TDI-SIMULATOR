@@ -385,7 +385,7 @@ def _make_argparser() -> argparse.ArgumentParser:
     p.add_argument("--pilot-model", choices=["fixed", "hydraulic"], default="fixed")
     p.add_argument("--pilot-frac", type=float, default=0.12, help="Pilot fraction for fixed model.")
     p.add_argument("--thermo-backend", choices=["simple", "coolprop"], default="coolprop")
-    p.add_argument("--flow-backend", choices=["simple", "fluids"], default="fluids")
+    p.add_argument("--flow-backend", choices=["simple", "fluids"], default="simple")
     p.add_argument("--coolprop-fluid", type=str, default="Air")
     p.add_argument("--ignition-delay", choices=["arrhenius", "fixed_deg"], default="arrhenius")
     p.add_argument("--ignition-delay-deg", type=float, default=5.0)
