@@ -154,7 +154,7 @@ class HeatTransferConfig:
     liner_temp_k: float = 450.0
     # Woschni simplified: h = c * B^-0.2 * p_bar^0.8 * T^-0.55 * w^0.8 [W/m^2K]
     # c = 127.93 is the constant for pressure in bar (equivalent to 3.26 with
-    # p in kPa), matching SPECYFIKACJA MATEMATYCZNA section 5.
+    # p in kPa), matching docs/sources/SPECYFIKACJA MATEMATYCZNA SOLVERA_ 1.9 TDI COGENERATION ENGINE.md section 5.
     woschni_c: float = 127.93
     # Gas velocity proxy: w = w_mult * mean_piston_speed
     w_mult: float = 6.0

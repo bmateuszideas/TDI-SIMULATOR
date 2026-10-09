@@ -1,0 +1,5 @@
+# Development tooling (not required by the simulator core or CI).
+# Referenced by AGENTS.md; install with: pip install -r requirements-dev.txt
+-r requirements.txt
+black>=24.10
+ruff>=0.8

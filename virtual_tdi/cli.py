@@ -21,10 +21,13 @@ from .full_cycle import FullCycleConfig, simulate_full_cycle
 from .hydraulics import NozzleConfig, VP37HydraulicConfig, NeedleConfig, estimate_pilot_ratio
 from .injection import InjectionLineConfig, solve_injection_hydraulics
 from .lift_table import ValveLiftTable
+from dataclasses import replace
+
 from .models import (
     CombustionConfig,
     EngineGeometry,
     Fuel,
+    HeatTransferConfig,
     InjectionSchedule,
     SimulationConfig,
     ManifoldConfig,
@@ -113,6 +116,24 @@ def _make_argparser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         help="Deprecated: fixed FMEP [bar]. Use --fmep-a-bar/--fmep-b-bar-per-krpm/--fmep-c-bar-per-bar.",
+    )
+    p.add_argument(
+        "--wall-temp-head-k",
+        type=float,
+        default=None,
+        help="Cylinder head wall temperature [K] for heat transfer (default: model/YAML value).",
+    )
+    p.add_argument(
+        "--wall-temp-piston-k",
+        type=float,
+        default=None,
+        help="Piston wall temperature [K] for heat transfer (default: model/YAML value).",
+    )
+    p.add_argument(
+        "--wall-temp-liner-k",
+        type=float,
+        default=None,
+        help="Liner wall temperature [K] for heat transfer (default: model/YAML value).",
     )
     p.add_argument("--ivo", type=float, default=-350.0, help="Intake valve open [deg]")
     p.add_argument("--ivc", type=float, default=-150.0, help="Intake valve close [deg]")
@@ -486,6 +507,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.vp37_cam and args.vp37_cam.exists():
         cam = VP37CamProfile.from_csv(args.vp37_cam)
 
+    def heat_transfer_config() -> HeatTransferConfig:
+        ht = HeatTransferConfig()
+        if args.wall_temp_head_k is not None:
+            ht = replace(ht, head_temp_k=float(args.wall_temp_head_k))
+        if args.wall_temp_piston_k is not None:
+            ht = replace(ht, piston_temp_k=float(args.wall_temp_piston_k))
+        if args.wall_temp_liner_k is not None:
+            ht = replace(ht, liner_temp_k=float(args.wall_temp_liner_k))
+        return ht
+
     def make_combustion_config(hrr_model: str) -> CombustionConfig:
         return CombustionConfig(
             hrr_model=hrr_model,
@@ -611,6 +642,7 @@ def main(argv: list[str] | None = None) -> int:
             scipy_rtol=float(args.scipy_rtol),
             scipy_atol=float(args.scipy_atol),
             scipy_max_step_deg=float(args.scipy_max_step_deg),
+            heat_transfer=heat_transfer_config(),
             intake_pressure_pa=args.p_intake_bar * 1e5,
             intake_temp_k=args.t_intake_k,
         )
@@ -718,6 +750,7 @@ def main(argv: list[str] | None = None) -> int:
                 integrator=str(args.integrator), scipy_method=str(args.scipy_method),
                 scipy_rtol=float(args.scipy_rtol), scipy_atol=float(args.scipy_atol),
                 scipy_max_step_deg=float(args.scipy_max_step_deg),
+                heat_transfer=heat_transfer_config(),
                 fmep_a_bar=fmep_a_bar,
                 fmep_b_bar_per_krpm=float(args.fmep_b_bar_per_krpm),
                 fmep_c_bar_per_bar=float(args.fmep_c_bar_per_bar),
@@ -894,6 +927,7 @@ def _run_transient_mode(args, geom, fuel, cam, build_schedule, make_combustion_c
         scipy_rtol=float(args.scipy_rtol),
         scipy_atol=float(args.scipy_atol),
         scipy_max_step_deg=float(args.scipy_max_step_deg),
+        heat_transfer=heat_transfer_config(),
     )
     valve_timing = ValveTiming(ivo_deg=args.ivo, ivc_deg=args.ivc, evo_deg=args.evo, evc_deg=args.evc)
     valve_flow = ValveFlow()

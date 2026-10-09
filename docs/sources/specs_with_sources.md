@@ -28,7 +28,7 @@ This document provides all physical and geometric parameters of the ALH engine, 
 | Ring set mass                    | ~40      | g      | 🧪 DAT, 🔧 PM                       |
 | Total connecting rod mass        | ~580     | g      | 🧪 DAT (Aftermarket FCP/Hurricane)  |
 | 1/4 Connecting rod (recip. mass) | ~145     | g      | 🧮 Calculated from total conrod mass |
-| Total reciprocating mass         | ~750     | g      | 🔧 PM, sum                          |
+| Total reciprocating mass         | 745      | g      | 🧮 Calculated (440+120+40+145)      |
 | Piston crown area                | 0.00496  | m²     | 🧮 Calculated from 79.5 mm bore     |
 
 ---
@@ -38,9 +38,9 @@ This document provides all physical and geometric parameters of the ALH engine, 
 | Parameter                         | Value    | Unit   | Source                              |
 |----------------------------------|----------|--------|-------------------------------------|
 | Valves per cylinder              | 2        | –      | 📘 SSP, 📖 ETKA                      |
-| Intake valve diameter            | 34.0     | mm     | 📖 ETKA (038 109 601), 🧪 DAT (INA)  |
-| Exhaust valve diameter           | 29.0     | mm     | 📖 ETKA, 🧪 DAT                      |
-| Max valve lift                   | ~9.0     | mm     | 🔧 PM, 🧪 DAT                        |
+| Intake valve diameter            | 35.95    | mm     | 📄 kompletna_lista_z_danymi_rozszerzona.md |
+| Exhaust valve diameter           | 31.45    | mm     | 📄 kompletna_lista_z_danymi_rozszerzona.md |
+| Max valve lift                   | 8.5      | mm     | 📄 kompletna_lista_z_danymi_rozszerzona.md (ALH camshaft) |
 | Valve spring stiffness           | 30–40    | N/mm   | 🧪 DAT (INA), 📝 R&D                 |
 | Valve mass (with keeper)         | ~100     | g      | 🧪 DAT, 📚 HEY                      |
 | Camshaft duration                | 220–240  | °crank | 📘 SSP, 🔧 PM                        |
@@ -54,7 +54,7 @@ This document provides all physical and geometric parameters of the ALH engine, 
 |----------------------------------|----------|--------|-------------------------------------|
 | Opening pressure (pre/main)      | 190/300  | bar    | 📘 SSP, 🧪 DAT (Bosch DSLA)          |
 | Number of nozzle holes           | 5        | –      | 📘 SSP, 📖 ETKA                      |
-| Hole diameter                    | 0.175    | mm     | 📘 SSP, 🧪 DAT                       |
+| Hole diameter                    | 0.184    | mm     | 📄 kompletna_lista_z_danymi_rozszerzona.md (DSLA 0.184, ALH baseline) |
 | Max pressure (pump)              | ~950–1050| bar    | 📘 SSP, 🧪 DAT                       |
 | Injection duration               | ~0.8–1.5 | ms     | 📝 R&D (SAE), 🔧 PM                 |
 | Pump drive ratio                 | 2:1      | –      | 📘 SSP                              |

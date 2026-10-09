@@ -84,15 +84,15 @@ parameters:
     intake_valve_diameter:
       value: 35.95
       unit: mm
-      source: "kompletna_lista_z_danymi_rozszerzona.md"
+      source: "docs/sources/kompletna_lista_z_danymi_rozszerzona.md"
     exhaust_valve_diameter:
       value: 31.45
       unit: mm
-      source: "kompletna_lista_z_danymi_rozszerzona.md"
+      source: "docs/sources/kompletna_lista_z_danymi_rozszerzona.md"
     max_valve_lift:
       value: 8.5
       unit: mm
-      source: "kompletna_lista_z_danymi_rozszerzona.md (for ALH camshaft)"
+      source: "docs/sources/kompletna_lista_z_danymi_rozszerzona.md (for ALH camshaft)"
 
   # ----------------------------------------------------------------------------
   # INJECTION SYSTEM (VP37 - ALH 90HP baseline)
@@ -105,7 +105,7 @@ parameters:
     plunger_diameter:
       value: 10.0
       unit: mm
-      source: "kompletna_lista_z_danymi_rozszerzona.md (manual gearbox)"
+      source: "docs/sources/kompletna_lista_z_danymi_rozszerzona.md (manual gearbox)"
     nozzle_holes:
       value: 5
       unit: "-"
@@ -113,7 +113,7 @@ parameters:
     nozzle_hole_diameter:
       value: 0.184
       unit: mm
-      source: "kompletna_lista_z_danymi_rozszerzona.md (for ALH 90HP)"
+      source: "docs/sources/kompletna_lista_z_danymi_rozszerzona.md (for ALH 90HP)"
     opening_pressure_pilot:
       value: 190
       unit: bar
@@ -131,15 +131,15 @@ parameters:
     piston:
       value: 440
       unit: g
-      source: "kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
+      source: "docs/sources/kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
     wrist_pin:
       value: 120
       unit: g
-      source: "kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
+      source: "docs/sources/kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
     rings_set:
       value: 40
       unit: g
-      source: "kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
+      source: "docs/sources/kompletna_lista_z_danymi_rozszerzona_pelna.md (Mahle)"
     total_conrod_mass:
       value: 580 # Approximate value based on aftermarket parts
       unit: g
@@ -166,4 +166,22 @@ parameters:
       value: 1.5
       unit: L
       source: "Placeholder estimate. To be verified/updated in Milestone M2 (Manifolds)."
+
+  # ----------------------------------------------------------------------------
+  # HEAT TRANSFER (wall temperatures for the multi-zone Woschni model)
+  # Initial estimates; to be calibrated in Milestone M3 (validation phase Faza 1).
+  # ----------------------------------------------------------------------------
+  heat_transfer:
+    head_wall_temp:
+      value: 500
+      unit: K
+      source: "Estimate (Heywood Ch. 13 typical DI diesel head temperatures). To be calibrated."
+    piston_wall_temp:
+      value: 550
+      unit: K
+      source: "Estimate (Heywood Ch. 13 typical DI diesel piston temperatures). To be calibrated."
+    liner_wall_temp:
+      value: 450
+      unit: K
+      source: "Estimate (Heywood Ch. 13 typical DI diesel liner temperatures). To be calibrated."
     

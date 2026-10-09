@@ -55,7 +55,7 @@ python -m virtual_tdi --help
 
 ## Run
 
-GUI (pełny panel z zakładkami dla wszystkich parametrów CLI — tryby full/closed/transient,
+3) GUI (pełny panel z zakładkami dla wszystkich parametrów CLI — tryby full/closed/transient,
 presety, zapis/wczytywanie konfiguracji JSON, podgląd wyjścia na żywo):
 
 `python -m virtual_tdi gui`
@@ -63,7 +63,7 @@ presety, zapis/wczytywanie konfiguracji JSON, podgląd wyjścia na żywo):
 Konfiguracje GUI zapisywane są jako JSON i można je wczytać ponownie w GUI
 (lub przekazać ręcznie przez CLI — GUI pokazuje pełne polecenie w logu przed uruchomieniem).
 
-2) Pełny cykl 720° (gazowymiana + sprężanie + spalanie + rozprężanie + wydech):
+4) Pełny cykl 720° (gazowymiana + sprężanie + spalanie + rozprężanie + wydech):
 
 `python -m virtual_tdi --mode full --rpm 1500 --fuel diesel --fuel-mg 20 --out out`
 
@@ -129,7 +129,7 @@ Wyniki:
 - Backendy fizyki: `--thermo-backend coolprop` (domyślny — CoolProp musi być zainstalowany przy `--strict-backends`, patrz quickstart), `--flow-backend fluids` (domyślnie `simple`).
 - Mapy ECU, profil VP37 i profil zaworów są wykrywane względem katalogu bieżącego (CWD) — uruchamiaj z root repo albo podaj ścieżki przez `--soi-map/--n146-map/--vp37-cam/--valve-table`.
 - Ograniczenie modelu: masa paliwa nie jest doliczana do masy ładunku w cylindrze (model śledzi energię paliwa, nie jego masę; niedokładność ~4% masy ładunku przy typowych dawkach).
-- Opoznienie zaplonu: `--ignition-delay arrhenius|fixed_deg` (dla `fixed_deg` ustaw `--ignition-delay-deg`).
+- Opóźnienie zapłonu: `--ignition-delay arrhenius|fixed_deg` (dla `fixed_deg` ustaw `--ignition-delay-deg`).
 
 ## Tests
 

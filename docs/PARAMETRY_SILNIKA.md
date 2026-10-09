@@ -16,9 +16,9 @@ Podstawowe wymiary definiujące kinematykę i objętość roboczą silnika.
 | Długość korbowodu | 144.0 | mm | ETKA, Mahle Datasheet |
 | Promień wykorbienia | 47.75 | mm | 🧮 Obliczone (`stroke / 2`) |
 | Odsadzenie osi cylindra (desaxage) | 0.5 | mm | CAD models EA827, `kompletna_lista_z_danymi.md` |
-| Rozstaw cylindrów | 88.0 | mm | `kompletna_lista_z_danymi_rozszerzona.md` |
-| Wysokość kompresyjna tłoka | 45.80 | mm | `kompletna_lista_z_danymi_rozszerzona.md` |
-| Średnica sworznia tłokowego | 26.00 | mm | `kompletna_lista_z_danymi_rozszerzona.md` |
+| Rozstaw cylindrów | 88.0 | mm | `docs/sources/kompletna_lista_z_danymi_rozszerzona.md` |
+| Wysokość kompresyjna tłoka | 45.80 | mm | `docs/sources/kompletna_lista_z_danymi_rozszerzona.md` |
+| Średnica sworznia tłokowego | 26.00 | mm | `docs/sources/kompletna_lista_z_danymi_rozszerzona.md` |
 
 ## 2. Komora Spalania i Stopień Sprężania
 
@@ -42,11 +42,11 @@ Parametry definiujące charakterystykę "oddychania" silnika.
 | Parametr | Wartość | Jednostka | Źródło / Opis |
 |---|---|---|---|
 | Liczba zaworów na cylinder | 2 | - | VW SSP 198 |
-| Średnica grzybka zaworu ssącego | 35.95 | mm | `kompletna_lista_z_danymi_rozszerzona.md` |
-| Średnica grzybka zaworu wydechowego | 31.45 | mm | `kompletna_lista_z_danymi_rozszerzona.md` |
-| Maksymalny wznios zaworów | 8.5 | mm | `kompletna_lista_z_danymi_rozszerzona.md` (dla wałka ALH) |
+| Średnica grzybka zaworu ssącego | 35.95 | mm | `docs/sources/kompletna_lista_z_danymi_rozszerzona.md` |
+| Średnica grzybka zaworu wydechowego | 31.45 | mm | `docs/sources/kompletna_lista_z_danymi_rozszerzona.md` |
+| Maksymalny wznios zaworów | 8.5 | mm | `docs/sources/kompletna_lista_z_danymi_rozszerzona.md` (dla wałka ALH) |
 | Profil wzniosu | Tabela danych | deg -> mm | `profil_krzywek_4cylindry.md` |
-| Średnica trzonka zaworu | 7.97 | mm | `kompletna_lista_z_danymi_rozszerzona.md` |
+| Średnica trzonka zaworu | 7.97 | mm | `docs/sources/kompletna_lista_z_danymi_rozszerzona.md` |
 
 ## 4. Układ Wtryskowy (Injection System)
 
@@ -55,10 +55,10 @@ Charakterystyka układu zasilania paliwem dla bazowej konfiguracji ALH (90KM).
 | Parametr | Wartość | Jednostka | Źródło / Opis |
 |---|---|---|---|
 | Typ pompy | Bosch VP37 | - | VW SSP 211 |
-| Średnica tłoczka pompy | 10.0 | mm | `kompletna_lista_z_danymi_rozszerzona.md` (skrzynia manualna) |
+| Średnica tłoczka pompy | 10.0 | mm | `docs/sources/kompletna_lista_z_danymi_rozszerzona.md` (skrzynia manualna) |
 | Profil tarczy krzywkowej | Tabela danych | deg -> mm | `skok_tloczka_vp37_de110.csv` (dla pompy DE110) |
 | Liczba otworów wtryskiwacza | 5 | - | VW SSP 211 |
-| Średnica otworu wtryskiwacza | 0.184 | mm | `kompletna_lista_z_danymi_rozszerzona.md` (dla ALH 90KM) |
+| Średnica otworu wtryskiwacza | 0.184 | mm | `docs/sources/kompletna_lista_z_danymi_rozszerzona.md` (dla ALH 90KM) |
 | Ciśnienie otwarcia (pilot) | 190 | bar | VW SSP 211, Bosch Datasheet |
 | Ciśnienie otwarcia (main) | 300 | bar | VW SSP 211, Bosch Datasheet |
 
@@ -68,9 +68,9 @@ Masy używane w obliczeniach bezwładności i obciążeń.
 
 | Parametr | Wartość | Jednostka | Źródło / Opis |
 |---|---|---|---|
-| Masa tłoka | 440 | g | `kompletna_lista_z_danymi_rozszerzona_pelna.md` (Mahle) |
-| Masa sworznia | 120 | g | `kompletna_lista_z_danymi_rozszerzona_pelna.md` (Mahle) |
-| Masa pierścieni (komplet) | 40 | g | `kompletna_lista_z_danymi_rozszerzona_pelna.md` (Mahle) |
+| Masa tłoka | 440 | g | `docs/sources/kompletna_lista_z_danymi_rozszerzona_pelna.md` (Mahle) |
+| Masa sworznia | 120 | g | `docs/sources/kompletna_lista_z_danymi_rozszerzona_pelna.md` (Mahle) |
+| Masa pierścieni (komplet) | 40 | g | `docs/sources/kompletna_lista_z_danymi_rozszerzona_pelna.md` (Mahle) |
 | Masa całkowita korbowodu | ~580 | g | **Estymacja** na podst. danych części aftermarket (FCP/Hurricane) |
 | Masa części posuwistej korbowodu | ~145 | g | **Estymacja** (`~1/4` masy całkowitej), standard inżynierski |
 | **Całkowita masa posuwista / cyl.** | **~750** | **g** | 🧮 **Obliczone** (suma powyższych) |

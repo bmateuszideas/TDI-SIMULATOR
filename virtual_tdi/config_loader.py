@@ -6,7 +6,7 @@ from typing import Any
 
 import yaml
 
-from .models import EngineGeometry, ManifoldConfig
+from .models import EngineGeometry, HeatTransferConfig, ManifoldConfig
 from .valvetrain import ValveFlow
 
 
@@ -94,3 +94,22 @@ def create_valve_flow_from_config(config: dict[str, Any]) -> ValveFlow:
         )
     except (KeyError, TypeError) as e:
         raise ValueError(f"Invalid or missing key in engine config for valvetrain: {e}") from e
+
+
+def create_heat_transfer_config_from_config(config: dict[str, Any]) -> HeatTransferConfig:
+    """Creates a HeatTransferConfig object from a loaded YAML config dictionary.
+
+    Falls back to code defaults when the `heat_transfer` section is absent,
+    so older config files keep working.
+    """
+    try:
+        params = config["parameters"].get("heat_transfer")
+        if params is None:
+            return HeatTransferConfig()
+        return HeatTransferConfig(
+            head_temp_k=float(params["head_wall_temp"]["value"]),
+            piston_temp_k=float(params["piston_wall_temp"]["value"]),
+            liner_temp_k=float(params["liner_wall_temp"]["value"]),
+        )
+    except (KeyError, TypeError) as e:
+        raise ValueError(f"Invalid or missing key in engine config for heat transfer: {e}") from e
