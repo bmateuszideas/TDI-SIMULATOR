@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 
-trapezoid = getattr(np, "trapezoid", None) or np.trapezoid if hasattr(np, "trapezoid") else np.trapz
+from virtual_tdi._numpy_compat import trapezoid
 
 from virtual_tdi.hydraulics import (
     NeedleConfig,

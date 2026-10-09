@@ -6,8 +6,7 @@ from math import pi, sqrt
 from .models import Fuel
 from .hydraulics import NozzleConfig, VP37HydraulicConfig, NeedleConfig
 from .vp37_cam import VP37CamProfile
-
-trapezoid = getattr(np, "trapezoid", None) or np.trapezoid if hasattr(np, "trapezoid") else np.trapz
+from ._numpy_compat import trapezoid
 
 @dataclass
 class InjectionLineConfig:

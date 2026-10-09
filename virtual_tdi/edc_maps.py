@@ -156,6 +156,17 @@ class BoostTargetMap2D:
         raw_axis = np.array([_parse_float_any(h) for h in header[1:]], dtype=float)
         # Heuristic: some sources encode IQ as 2000..4000 meaning 20.00..40.00.
         iq_axis = np.array([v / 100.0 if v >= 200.0 else v for v in raw_axis], dtype=float)
+        # Sanity check: physical IQ per stroke for this engine is < ~60 mg.
+        # Values above that usually mean the source axis is not in mg/stroke
+        # (e.g. mg/s or an unscaled column) - warn rather than silently clip.
+        import warnings
+        bad = iq_axis[iq_axis > 60.0]
+        if bad.size:
+            warnings.warn(
+                f"Boost map {p}: IQ axis contains non-physical values > 60 mg/stroke: "
+                f"{sorted(bad.tolist())}. Verify the CSV units (mg/stroke expected).",
+                stacklevel=2,
+            )
 
         rpm_vals: list[float] = []
         grid: list[list[float]] = []

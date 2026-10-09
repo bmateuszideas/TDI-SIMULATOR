@@ -6,8 +6,6 @@ from typing import Any
 
 import numpy as np
 
-trapezoid = getattr(np, "trapezoid", None) or np.trapezoid if hasattr(np, "trapezoid") else np.trapz
-
 from .combustion import (
     CombustionScheduleRuntime,
     heat_release_rate_dq_dtheta,
@@ -24,10 +22,9 @@ from .thermo import GasModel, omega_rad_per_s
 from .valvetrain import ValveFlow, ValveTiming, effective_curtain_area_m2, valve_lift_fraction
 from .lift_table import ValveLiftTable
 from .vp37_cam import VP37CamProfile
-
+from ._numpy_compat import trapezoid
 
 DEG2RAD = pi / 180.0
-
 
 @dataclass(frozen=True)
 class BoundaryConditions:
@@ -35,7 +32,6 @@ class BoundaryConditions:
     intake_temp_k: float = 300.0
     exhaust_pressure_pa: float = 1.1e5
     exhaust_temp_k: float = 800.0
-
 
 @dataclass(frozen=True)
 class FullCycleConfig:
@@ -112,7 +108,6 @@ class FullCycleConfig:
         if self.tdc_offset_deg is None:
             object.__setattr__(self, "tdc_offset_deg", {1: 0.0, 3: 180.0, 4: 360.0, 2: 540.0})
 
-
 @dataclass(frozen=True)
 class FullCycleResult:
     theta_deg: np.ndarray
@@ -140,7 +135,6 @@ class FullCycleResult:
     torque_indicated_nm_per_cyl: np.ndarray
     metrics: dict[str, Any]
 
-
 def _rk4_step(theta_rad: float, state: np.ndarray, *, step_rad: float, deriv) -> np.ndarray:
     k1 = deriv(theta_rad, state)
     k2 = deriv(theta_rad + 0.5 * step_rad, state + 0.5 * step_rad * k1)
@@ -148,25 +142,21 @@ def _rk4_step(theta_rad: float, state: np.ndarray, *, step_rad: float, deriv) ->
     k4 = deriv(theta_rad + step_rad, state + step_rad * k3)
     return state + (step_rad / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
 
-
 def _soc_deg(runtime, which: str, schedule) -> float | None:
     if runtime is None:
         return None
     soc_rad = runtime.pilot_soc_rad if which == "pilot" else runtime.main_soc_rad
     return None if soc_rad is None else soc_rad / DEG2RAD
 
-
 def _delay_deg(runtime, which: str) -> float | None:
     if runtime is None:
         return None
     return runtime.ign_delay_pilot_deg if which == "pilot" else runtime.ign_delay_main_deg
 
-
 def _capped(runtime, which: str) -> bool:
     if runtime is None:
         return False
     return runtime.ign_delay_pilot_capped if which == "pilot" else runtime.ign_delay_main_capped
-
 
 def simulate_full_cycle(
     geom: EngineGeometry,

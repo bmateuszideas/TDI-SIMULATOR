@@ -4,9 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-
-trapezoid = getattr(np, "trapezoid", None) or np.trapezoid if hasattr(np, "trapezoid") else np.trapz
-
+from ._numpy_compat import trapezoid
 
 @dataclass(frozen=True)
 class VP37CamProfile:

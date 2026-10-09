@@ -5,7 +5,7 @@ import numpy as np
 from virtual_tdi.full_cycle import BoundaryConditions, FullCycleConfig, simulate_full_cycle
 from virtual_tdi.models import EngineGeometry, Fuel, HeatTransferConfig, InjectionSchedule, SimulationConfig
 from virtual_tdi.valvetrain import ValveTiming
-
+from virtual_tdi._numpy_compat import trapezoid
 
 class TestFullCycleHeatTransfer(unittest.TestCase):
     def test_head_temp_trends_and_component_sums(self):
@@ -74,7 +74,6 @@ class TestFullCycleHeatTransfer(unittest.TestCase):
             )
         )
 
-        trapezoid = getattr(np, "trapezoid", None) or np.trapezoid if hasattr(np, "trapezoid") else np.trapz
         q_head_cool = float(trapezoid(result_cool.dq_head_j_per_deg, result_cool.theta_deg))
         q_head_hot = float(trapezoid(result_hot.dq_head_j_per_deg, result_hot.theta_deg))
         self.assertLess(q_head_hot, q_head_cool)
@@ -83,7 +82,6 @@ class TestFullCycleHeatTransfer(unittest.TestCase):
             result_hot.metrics["t_exhaust_mean_k"] - result_cool.metrics["t_exhaust_mean_k"], 0.02
         )
         self.assertGreater(result_hot.metrics["imep_bar"], result_cool.metrics["imep_bar"])
-
 
 if __name__ == "__main__":
     unittest.main()
