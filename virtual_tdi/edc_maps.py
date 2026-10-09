@@ -154,11 +154,10 @@ class BoostTargetMap2D:
             raise ValueError(f"Invalid header in CSV: {p}")
 
         raw_axis = np.array([_parse_float_any(h) for h in header[1:]], dtype=float)
-        # Heuristic: some sources encode IQ as 2000..4000 meaning 20.00..40.00.
-        iq_axis = np.array([v / 100.0 if v >= 200.0 else v for v in raw_axis], dtype=float)
-        # Sanity check: physical IQ per stroke for this engine is < ~60 mg.
-        # Values above that usually mean the source axis is not in mg/stroke
-        # (e.g. mg/s or an unscaled column) - warn rather than silently clip.
+        # Header units are mg/stroke (docs/MAPY_ECU_KONWENCJE.md); the historical
+        # x100 OCR scaling artifact was fixed at the source file. Keep a plain
+        # sanity warning for future obviously-broken exports.
+        iq_axis = raw_axis
         import warnings
         bad = iq_axis[iq_axis > 60.0]
         if bad.size:
