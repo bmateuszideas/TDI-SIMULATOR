@@ -4,13 +4,16 @@
 # (public domain dyno community data, e.g. TDIClub; values are engineering
 # estimates suitable for 0D coupling - see docs/BASELINE_MAPY_ECU_I_OSPRZET.md).
 # Efficiency map: speed x PR -> isentropic efficiency [-].
-speed_rpm: [60000, 90000, 120000, 150000, 180000, 210000]
+speed_rpm: [30000, 45000, 60000, 90000, 120000, 150000, 180000, 210000]
 
 corrected_mass_kg_s:
   # rows = speed lines (same order as speed_rpm), cols = PR below
   pr_grid: [1.2, 1.5, 1.8, 2.2, 2.6, 3.0]
   values:
     # At constant shaft speed, higher PR -> lower swallowed flow (compressor map physics).
+    # Low speed lines (30k/45k) cover the small 1.9 TDI part-load flows (0.01-0.05 kg/s).
+    - [0.016, 0.011, 0.008, 0.006, 0.005, 0.004]   # 30k
+    - [0.034, 0.026, 0.020, 0.015, 0.012, 0.010]   # 45k
     - [0.053, 0.042, 0.035, 0.028, 0.022, 0.018]   # 60k
     - [0.094, 0.078, 0.065, 0.052, 0.041, 0.033]   # 90k
     - [0.133, 0.112, 0.095, 0.078, 0.064, 0.052]   # 120k
@@ -21,6 +24,8 @@ corrected_mass_kg_s:
 efficiency:
   pr_grid: [1.2, 1.5, 1.8, 2.2, 2.6, 3.0]
   values:
+    - [0.55, 0.60, 0.62, 0.60, 0.55, 0.50]   # 30k
+    - [0.60, 0.66, 0.68, 0.65, 0.60, 0.55]   # 45k
     - [0.62, 0.68, 0.70, 0.66, 0.58, 0.50]   # 60k
     - [0.66, 0.73, 0.76, 0.74, 0.68, 0.60]   # 90k
     - [0.64, 0.74, 0.78, 0.78, 0.74, 0.67]   # 120k

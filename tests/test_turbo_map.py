@@ -11,9 +11,10 @@ class TestTurboMapModel(unittest.TestCase):
         self.tm = TurboMapModel.from_yaml(ROOT / "validation" / "turbo_map_gt1749v.yaml")
 
     def test_loads_map_shape(self):
-        self.assertEqual(self.tm.speed_rpm.shape, (6,))
-        self.assertEqual(self.tm.mass_kg_s.shape, (6, 6))
-        self.assertEqual(self.tm.eff_map.shape, (6, 6))
+        # 8 speed lines (30k-210k incl. low-speed lines for small-engine flows)
+        self.assertEqual(self.tm.speed_rpm.shape, (8,))
+        self.assertEqual(self.tm.mass_kg_s.shape, (8, 6))
+        self.assertEqual(self.tm.eff_map.shape, (8, 6))
 
     def test_compressor_efficiency_in_physical_range(self):
         for N in (60000, 120000, 180000, 210000):

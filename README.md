@@ -26,6 +26,24 @@ Mapy ECU w repo są **referencją/warstwą sterownika**, a nie “silnikiem” s
 
 Jeśli chcesz generować dane stricte “z fizyki” (do ML/DL), uruchamiaj dataset bez map (`python -m virtual_tdi dataset ...` domyślnie nie używa map) albo w symulacji ustaw `--ecu off` i steruj wejściami jawnie.
 
+## Warsztat tunera (co-jeśli)
+
+Porównanie wariantów osprzętu/kalibracji na jednym punkcie pracy —
+odpowiedź na pytania typu "co się stanie po założeniu końcówek 0.205":
+
+```
+python -m virtual_tdi compare --rpm 1900 --fuel-mg 36 \
+  --variant stock \
+  --variant nozzles_0.205:nozzle-diameter=0.205 \
+  --variant timing_plus2:soi-offset=-2.0
+```
+
+Wypisuje tabelę: torque / moc / IMEP / peak-P / BSFC / EGT / czas trwania
+wtrysku / wałek turbo dla każdego wariantu. Uwaga: przy stałej komendowanej
+dawce zmiana końcówki zmienia szybkość/fazowanie wtrysku (ścieżka
+hydrauliczna), nie masę paliwa — różnice vs stock są fizycznie małe; łącz
+z `fuel-mg`/`boost-bar`, by badać granice wariantu.
+
 ## Walidacja
 
 Porównanie symulacji z punktami referencyjnymi ALH 90 KM (patrz

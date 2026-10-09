@@ -74,3 +74,34 @@ class TestShaftDynamics(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBoostPid(unittest.TestCase):
+    def test_shaft_dynamics_with_pid_stays_bounded(self):
+        from virtual_tdi.turbo_map import TurboMapModel, shaft_dynamics_step
+        tm = TurboMapModel.from_yaml()
+        shaft = 60000.0
+        pr = 1.0
+        for _ in range(100):
+            shaft, pr = shaft_dynamics_step(
+                tm, shaft_rpm=shaft, p_intake_pa=pr * 1.0e5,
+                p_exhaust_pa=1.4e5, t_exhaust_k=800.0,
+                m_air_kg_s=0.04, m_exhaust_kg_s=0.042,
+                dt_s=0.05, vnt_er_command=2.0,
+            )
+            self.assertLessEqual(shaft, 280000.0)
+            self.assertGreaterEqual(pr, 1.0)
+            self.assertLessEqual(pr, 3.0)
+
+    def test_pr_stays_within_mapped_grid(self):
+        # Regression for the bisection mis-convergence beyond the PR grid
+        # (constant clipped flow steered lo into the unmapped region).
+        from virtual_tdi.turbo_map import TurboMapModel, shaft_dynamics_step
+        tm = TurboMapModel.from_yaml()
+        _, pr = shaft_dynamics_step(
+            tm, shaft_rpm=60000.0, p_intake_pa=1.0e5, p_exhaust_pa=1.4e5,
+            t_exhaust_k=800.0, m_air_kg_s=0.0222, m_exhaust_kg_s=0.0223,
+            dt_s=0.05, vnt_er_command=1.789,
+        )
+        self.assertLessEqual(pr, float(tm.pr_grid[-1]))
+        self.assertGreaterEqual(pr, 1.0)

@@ -3,6 +3,7 @@ import sys
 from .cli import main as cli_main
 from .dataset import main as dataset_main
 from .validation import main as validation_main
+from .compare import main as compare_main
 
 
 if __name__ == "__main__":
@@ -10,6 +11,8 @@ if __name__ == "__main__":
         raise SystemExit(dataset_main(sys.argv[2:]))
     if len(sys.argv) >= 2 and sys.argv[1] == "validate":
         raise SystemExit(validation_main(sys.argv[2:]))
+    if len(sys.argv) >= 2 and sys.argv[1] == "compare":
+        raise SystemExit(compare_main(sys.argv[2:]))
     if len(sys.argv) >= 2 and sys.argv[1] == "gui":
         try:
             from .gui import main as gui_main
