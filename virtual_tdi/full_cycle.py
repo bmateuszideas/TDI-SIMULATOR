@@ -518,6 +518,11 @@ def simulate_full_cycle(
         "indicated_torque_nm": indicated_torque_nm,
         "brake_torque_nm_est": brake_torque_nm,
         "brake_power_kw_est": power_w / 1000.0,
+        "bsfc_g_per_kwh": (
+            # fuel mass flow [kg/s] * 3.6e9 -> [g/kWh]; power in W -> kW handled by 1e3
+            (m_fuel_total_kg * geom.cylinders * cycles_per_s * 3.6e6 / (power_w / 1.0e3))
+            if power_w > 1.0 else 0.0
+        ),
         "mass_start_kg_per_cyl": results["mass"][0],
         "mass_end_kg_per_cyl": results["mass"][-1],
         "m_air_in_kg_per_cyl": np.sum(np.clip(results["mdot_in"], 0.0, None) * dt),

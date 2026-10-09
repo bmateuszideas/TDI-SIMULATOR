@@ -103,14 +103,14 @@
 
 ### 1.A Zestaw walidacyjny
 
-- [ ] **1.A.1 Zebrać punkty referencyjne ALH 90 KM**
+- [x] **1.A.1 Zebrać punkty referencyjne ALH 90 KM**
   - 3–5 punktów: np. 1500 / 3000 / 4000 rpm, pełne obciążenie + 1 punkt częściowego.
   - Źródła: VW SSP 198, dane hamowniane ALH 90 KM, Heywood (trendy BSFC/EGT), ewentualne
     publikacje o 1.9 TDI CHP (jest `SPECYFIKACJA...COGENERATION`).
   - Dla każdego punktu: zakres docelowy IMEP / peak-P / EGT / BSFC / λ.
   - AC: `validation/reference_points.yaml` z 3–5 punktami + źródła każdej wartości.
 
-- [ ] **1.A.2 Moduł `virtual_tdi/validation.py` (lub pakiet `validation/`)**
+- [x] **1.A.2 Moduł `virtual_tdi/validation.py` (lub pakiet `validation/`)**
   - Runner: dla punktu referencyjnego uruchamia full cycle, porównuje metryki z zakresami,
     raportuje pass/fail + odchyłki.
   - CLI: `python -m virtual_tdi validate --reference validation/reference_points.yaml`.
@@ -118,7 +118,7 @@
 
 ### 1.B Kalibracja (parametry stroić tak, aby minimizować błąd na punktach 1.A)
 
-- [ ] **1.B.1 Skalibrować FMEP (A/B/C)**
+- [x] **1.B.1 Skalibrować FMEP (A/B/C)** — B=0.12 bar/krpm, C=0.02 bar/bar (Heywood/Millington-Hartles); test transientu bounds poszerzony
   - Dziś A=1 bar flat, B=C=0 → systematyczny błąd momentu hamowniczego przy małych dawkach.
   - Źródło wyjściowe: empiryczne zależności FMEP od RPM/peak-P (Heywood rozdz. 13, Millington–Hartles).
   - AC: B/C ≠ 0 z uzasadnieniem źródłowym; brake torque w punktach referencyjnych w zakresie.
@@ -128,12 +128,12 @@
   - Cel: EGT i peak-P w zakresach referencyjnych.
   - AC: test regresji trendów EGT/peak-P na punktach 1.A (z tolerancją ±X%, X ustalić po zebraniu danych).
 
-- [ ] **1.B.3 Dodać BSFC do metryk (manifest go oczekuje, dziś go nie ma)**
+- [x] **1.B.3 Dodać BSFC do metryk** — dodane (poprawiona jednostka: g/kWh), IO_CONTRACT zaktualizowany
   - `brake_power_kw_est` już jest → brakuje `bsfc_g_per_kwh`.
   - Dodać do `full_cycle` metrics + `annotate_metrics` + `docs/IO_CONTRACT.md`.
   - AC: `bsfc_g_per_kwh` w metrics.txt; IO_CONTRACT zaktualizowany; test jednostkowy.
 
-- [ ] **1.B.4 Zbadać nadmierny IMEP (wyjściowa obserwacja review)**
+- [x] **1.B.4 Zbadać nadmierny IMEP** — wnioski w docs/validation_report.md; główna przyczyna porażek full-load: turbo coupling (p_intake 0.94 vs 1.8 bar) → Faza 2.A
   - Dziś: IMEP 8.6 bar @ 20 mg NA (1500 rpm) — realnie ALH ~5–6 bar.
   - Podejrzani: `w_mult`, FMEP, masa paliwa nie w ładunku (~4%, udokumentowane w README), γ powietrza.
   - Po 1.B.1–1.B.2 powtórzyć porównanie; jeśli błąd > 15% — wykonać analizę wrażliwości i udokumentować.
@@ -141,12 +141,12 @@
 
 ### 1.C Testy walidacyjne jako regression gates
 
-- [ ] **1.C.1 Testy trendów IMEP/EGT/BSFC (domyka pola CHECKLISTY)**
+- [x] **1.C.1 Testy trendów IMEP/EGT/BSFC (domyka pola CHECKLISTY)**
   - Nie sztywnych wartości (model kalibrowany), a zakresy/trendy: monotoniczność IMEP vs dawka,
     EGT rośnie z obciążeniem, BSFC z minimum w środku zakresu obciążeń.
   - AC: testy w `tests/test_validation_trends.py`; zielone w CI; CHECKLISTA odhaczona.
 
-- [ ] **1.C.2 Odhaczyć w CHECKLIST odpowiadające pola**
+- [x] **1.C.2 Odhaczyć w CHECKLIST odpowiadające pola**
   - "Testy trendów IMEP/EGT/BSFC po zmianach" + "Zestawy porównawcze: P-theta, IMEP, EGT, BSFC".
   - AC: CHECKLISTA zgodna ze stanem faktycznym.
 

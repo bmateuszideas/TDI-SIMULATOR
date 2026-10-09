@@ -1,0 +1,38 @@
+# Reference points: VW 1.9 TDI ALH 90 PS (Golf IV / Jetta / New Beetle, 1997-2003)
+# Sources:
+#   - Factory ratings: 66 kW (90 PS) @ 3750 rpm, 210 Nm @ 1900 rpm (VW SSP, ETKA)
+#   - BSFC island ~197-210 g/kWh near peak torque (TDIClub BSFC chart for ALH, DBW)
+#   - Full-load BSFC at rated power ~230-240 g/kWh (typical for this engine class)
+# Targets are given as tolerances (pct) around reference values where the
+# simulator is expected to land after calibration (Faza 1 in TODO.md).
+# NA points are run without turbo coupling; boost points assume --turbo.
+points:
+  - name: full_load_peak_torque
+    description: "Full load at peak torque (factory 210 Nm @ 1900 rpm, turbocharged)"
+    rpm: 1900
+    fuel_mg_per_cycle_per_cyl: 36.0   # ~smoke limiter max at this rpm
+    turbo: true
+    known_gap: turbo_coupling   # current turbo balance yields ~0.94 bar intake (see docs/validation_report.md)
+    expect:
+      brake_torque_nm: {ref: 210.0, tol_pct: 10}
+      peak_pressure_pa: {ref: 9000000.0, tol_pct: 20}   # ~90 bar boosted
+      bsfc_g_per_kwh: {ref: 210.0, tol_pct: 12}
+
+  - name: full_load_rated_power
+    description: "Full load at rated power (factory 66 kW @ 3750 rpm, turbocharged)"
+    rpm: 3750
+    fuel_mg_per_cycle_per_cyl: 30.0
+    turbo: true
+    known_gap: turbo_coupling
+    expect:
+      brake_power_kw: {ref: 66.0, tol_pct: 12}
+      bsfc_g_per_kwh: {ref: 235.0, tol_pct: 12}
+
+  - name: part_load_cruise
+    description: "Part load typical CHP/cruise point (~30 Nm @ 1500 rpm)"
+    rpm: 1500
+    fuel_mg_per_cycle_per_cyl: 8.0
+    turbo: false
+    expect:
+      imep_bar: {ref: 3.0, tol_pct: 25}   # part-load IMEP is calibration-sensitive
+      bsfc_g_per_kwh: {ref: 260.0, tol_pct: 25}

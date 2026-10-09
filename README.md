@@ -26,6 +26,15 @@ Mapy ECU w repo są **referencją/warstwą sterownika**, a nie “silnikiem” s
 
 Jeśli chcesz generować dane stricte “z fizyki” (do ML/DL), uruchamiaj dataset bez map (`python -m virtual_tdi dataset ...` domyślnie nie używa map) albo w symulacji ustaw `--ecu off` i steruj wejściami jawnie.
 
+## Walidacja
+
+Porównanie symulacji z punktami referencyjnymi ALH 90 KM (patrz
+`docs/validation_report.md` i TODO.md Faza 1):
+
+```
+python -m virtual_tdi validate
+```
+
 ## Quickstart
 
 1) Zainstaluj zależności z `requirements.txt` w swoim środowisku.
