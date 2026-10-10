@@ -155,3 +155,32 @@ Korekta referencji peak-torque: 210 Nm (literatura, smoke-limit IQ ~38-40 mg)
 -> 192 Nm przy punkcie fabrycznym (1705 mbar, 36 mg) - model biega TERAZ w
 punkcie roboczym ECU, wiec referencja musi byc dla tego punktu.
 Walidacja klasyczna: 3/3 PASS.
+
+## 11. Krytyczna korekta (K1/K2 z review zewnetrznego): termika, defaulty, tuning
+
+Zewnetrzny review wykazal, ze walidacja przechodzila TYLKO na wystudiowanej
+konfiguracji (default CLI: peak-P 123 bar vs walidacja 113 bar; rozjazd ~10%,
+a w BSFC 12%). Dekompozycja empiryczna wykazala CZTERY niezalezne przyczyny:
+
+1. **Wadliwe gamma(T) w walidowanym backendu** (najpowazniejsze): simple mial
+   gamma = 1.38 - 1e-4*T -> gamma 1.14 @ 2400 K (fizycznie ~1.29). CoolProp
+   (default CLI) byl blisko prawdy; walidacja biegla na blednym. Wszystkie
+   wczesniejsze kalibracje (sciany 600/650/550, FMEP) byly dostrojone do
+   blednej termiki. Fix: nasycajaca eksponenta dopasowana do tablic Heywood
+   Ch. 2 (1.405/1.334/1.294/1.288 @ 300/800/1800/2400 K).
+2. **Niekonwergencja turbo w defaulcie**: --turbo-iters 5 zostawial dolot
+   ~0.33 bar ponizej rownowagi; walidacja uzywala 12. Default -> 12.
+3. **Dryf defaultow CLI vs model**: --fmep-b-bar-per-krpm CLI default 0.0
+   po cichu nadpisywal skalibrowane 0.25 z modelu. Defaulty zjednoczone.
+4. **Tuning punktow referencyjnych** (K2): soi_offset_deg -3.0 usuniety;
+   punkty musza przechodzic na czystych mapach fabrycznych. Referencja
+   BSFC part-load skorygowana 260 -> 285 (wyliczenie fizyczne: 8 mg @ 1500
+   rpm -> 0.4 g/s paliwa, ~4.5-5 kW hamowniczo).
+
+**Wynik uczciwy:** default CLI == wywolanie walidacyjne (138.2 vs 138.4 bar
+peak-P @ 1900/36/turbo). Klasyczna walidacja 3/3 PASS na czystych mapach.
+Map-grid PASS; trend do -14% @ 4500 rpm pozostaje (K6 - znana luka strat
+wysokich obrotow: dolot/intercooler/pompa; udokumentowane, do naprawy).
+
+**Przyznanie:** poprzednie raporty "3/3 PASS" i kalibracje z Faz 1-2 byly
+czesciowo artefaktem blednego gamma. Obecne wyniki to skorygowany baseline.

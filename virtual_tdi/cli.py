@@ -102,7 +102,7 @@ def _make_argparser() -> argparse.ArgumentParser:
     p.add_argument(
         "--fmep-b-bar-per-krpm",
         type=float,
-        default=0.0,
+        default=0.25,
         help="Brake loss model: FMEP B coefficient [bar/krpm].",
     )
     p.add_argument(
@@ -223,7 +223,9 @@ def _make_argparser() -> argparse.ArgumentParser:
         help="Full-cycle: override initial intake pressure from boost target map.",
     )
     p.add_argument("--turbo", action="store_true", help="Enable turbo coupling (power balance).")
-    p.add_argument("--turbo-iters", type=int, default=5, help="Turbo coupling iterations.")
+    p.add_argument("--turbo-iters", type=int, default=12,
+                   help="Turbo coupling iterations (12 = converged; 5 leaves the "
+                        "intake pressure ~20%% low at full load).")
     p.add_argument("--turbo-eta-t", type=float, default=0.70, help="Turbine efficiency")
     p.add_argument("--turbo-eta-c", type=float, default=0.70, help="Compressor efficiency")
     p.add_argument("--turbo-eta-mech", type=float, default=0.95, help="Shaft mechanical efficiency")

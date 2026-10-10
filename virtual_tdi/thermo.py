@@ -44,7 +44,15 @@ class GasModel:
         props = _real_gas_props(temperature_k, pressure_pa, cfg)
         if props is not None:
             return props["gamma"]
-        g = cfg.gamma_t0 - cfg.gamma_slope_per_k * temperature_k
+        if cfg.gamma_slope_per_k != 0.0:
+            # Legacy linear form (kept for backward compatibility of old configs)
+            g = cfg.gamma_t0 - cfg.gamma_slope_per_k * temperature_k
+        else:
+            # Saturating exponential fit to air/exhaust tables (Heywood Ch. 2);
+            # see models.SimulationConfig for the fitted points.
+            import numpy as np
+            g = cfg.gamma_inf + (cfg.gamma_t0 - cfg.gamma_inf) * float(
+                np.exp(-max(1.0, temperature_k) / cfg.gamma_t_ref_k))
         g = max(cfg.gamma_min, min(cfg.gamma_max, g))
         if burned_fraction is not None and burned_fraction > 0.0:
             # Mixture correction: gamma_mix = cp_mix / (cp_mix - R) with
