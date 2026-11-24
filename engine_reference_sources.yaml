@@ -40,7 +40,7 @@ parameters:
     cylinder_offset:
       value: 0.5
       unit: mm
-      source: "CAD models EA827, kompletna_lista_z_danymi.md"
+      source: "CAD models EA827, docs/sources/kompletna_lista_z_danymi_SCALONA.md"
 
   # ----------------------------------------------------------------------------
   # COMBUSTION CHAMBER & COMPRESSION

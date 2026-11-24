@@ -7,6 +7,16 @@ dataset generator for ML/DL. ECU layer: factory SOI/N146/SmokeLimiter/EGR/Boost
 maps. Injection: VP37 cam profile, 1D line hydraulics, needle dynamics.
 """
 
+try:
+    from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
+    try:
+        __version__ = _pkg_version("virtual-tdi")
+    except PackageNotFoundError:
+        __version__ = "0.2.0"
+except Exception:
+    __version__ = "0.2.0"
+
 from .coupled import CoupledResult, simulate_coupled_turbo
 from .full_cycle import BoundaryConditions, FullCycleConfig, simulate_full_cycle
 from .edc_maps import BoostTargetMap2D, EGRMafTargetMap2D, SmokeLimiterMap2D

@@ -1,4 +1,4 @@
-# TODO — plan rozwoju projektu (na bazie review ×2, stan: `16021de`, main)
+# TODO — plan rozwoju projektu (stan: main @ `6558cb8`; 137 testów zielonych, walidacja 3/3 PASS + map-grid 12/12)
 
 > Struktura: Faza 0 (higiena + rozbieżności) → Faza 1 (walidacja i kalibracja)
 > → Faza 2 (fizyka domykająca) → Faza 3 (ML/DL).
@@ -123,7 +123,7 @@
   - Źródło wyjściowe: empiryczne zależności FMEP od RPM/peak-P (Heywood rozdz. 13, Millington–Hartles).
   - AC: B/C ≠ 0 z uzasadnieniem źródłowym; brake torque w punktach referencyjnych w zakresie.
 
-- [ ] **1.B.2 Skalibrować wymianę ciepła**
+- [x] **1.B.2 Skalibrować wymianę ciepła** — zrobione (validation_report.md §7: ściany 600/650/550 K w YAML z `source`; walidacja 3/3 PASS)
   - `w_mult` (dziś 6) + temperatury ścian (po 0.A.3 już konfigurowalne).
   - Cel: EGT i peak-P w zakresach referencyjnych.
   - AC: test regresji trendów EGT/peak-P na punktach 1.A (z tolerancją ±X%, X ustalić po zebraniu danych).
@@ -232,5 +232,5 @@
 ## Zrobione przed tym planem (kontekst, nie do odhaczania)
 
 - Pełny cykl 720° z dynamicznymi kolektorami, fala 1D VP37, dynamika iglicy, model ścian,
-  cap na opóźnienie zapłonu, governor PI transient, mapy ECU z walidacją, GUI, CI 96 testów,
+  cap na opóźnienie zapłonu, governor PI transient, mapy ECU z walidacją, GUI, CI 137 testów,
   fixy fizyki z PR #11/#13 (Woschni 40×, blow-up delay, masa wtrysku, zgodność backendów).

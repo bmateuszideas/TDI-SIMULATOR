@@ -3,21 +3,25 @@
 Ten dokument spisuje rozbieznosci i kolejnosc prac tak, aby projekt byl zgodny z manifestem.
 Pelna kinetyka chemiczna (full-chem) nie jest wymagana na tym etapie.
 
-## 1) Rozbieznosci vs manifest (stan obecny, po M2-M4)
-Zrobione (domkniete w PR #10-#13):
+## 1) Rozbieznosci vs manifest (stan obecny, main @ 6558cb8)
+Zrobione (domkniete w PR #10-#23; walidacja 3/3 PASS + map-grid 12/12 - patrz docs/validation_report.md):
 - Kolektory dynamiczne (0D, bilanse masy/energii, stan EGR) - gazowymiana z oryficzem 0D przez zawory, z przeplywami odwrotnymi.
-- Hydraulika wtrysku: fala cisnienia 1D (lumped line) w przewodzie + dynamika iglicy (NeedleConfig); HRR z profil hydraulicznego; wtrysk wielofazowy pilot/main.
-- Wymiana ciepla: Woschni uproszczony z modelem scian (denko/tlok/tuleja, 3 powierzchnie); temperatury scian czytelne z YAML/CLI.
+- Hydraulika wtrysku: fala cisnienia 1D (lumped line) w przewodzie + dynamika iglicy (NeedleConfig); HRR z profilu hydraulicznego; wtrysk wielofazowy pilot/main.
+- Wymiana ciepla: Woschni uproszczony z modelem scian (denko/tlok/tuleja, 3 powierzchnie); temperatury scian kalibrowane na punktach ALH (600/650/550 K, w YAML z source) i konfigurowalne z YAML/CLI.
 - Opuznienie zaplonu Arrhenius z capem sanity (40 deg) + diagnostyka SOC/delay w metrykach.
+- Turbo: mapy sprezarki/turbiny GT1749V + dynamika walka (J*domega/dt) + feedforward z fabrycznej mapy BOOST (Faza 2.A; `validate --map-grid` 12/12).
+- Termika mieszanin: gamma(T,x) blend powietrze/spaliny; masa paliwa w bilansie ladunku zsynchronizowana z HRR (Faza 2.B).
+- ECU: model percepcji czujnikow (opoznienia, filtry, szum, bias) + petle regulacji (governor PI, PID boost -> VNT z anti-windup) w transientze (Faza 2.C).
+- Walidacja: zestaw referencyjny ALH 90 KM (`python -m virtual_tdi validate` -> 3/3 PASS) + siatka map ECU (12/12) + testy trendow IMEP/EGT/BSFC (Faza 1).
+- Warsztat tunera: `python -m virtual_tdi compare` (warianty osprzetu/kalibracji w jednym punkcie pracy).
 
 Nadal otwarte:
-- Geometria/kinematyka: czesc danych ma wartosci domyslne, nie wszystkie maja twarde zrodla pomiarowe.
-- Termodynamika: idealny gaz + opcjonalny CoolProp (czyste powietrze), ale bez mieszanin spalin/paliwa; masa paliwa nie plynie do masy ladunku (~4%, udokumentowane w README).
-- Wymiana ciepla: Woschni uproszczony (sta `w_mult`/temperatury scian) - do skalibracji na punktach referencyjnych (Faza 1 w TODO.md).
-- Turbo: prosty bilans mocy bez map sprezarki/turbiny i bez dynamiki waka.
-- ECU: mapy i proste reguly (governor PI), brak modelu percepcji (czujniki, opoznienia, filtry).
-- Walidacja: brak jakiegokolwiek zestawu porownawczego z danych rzeczywistych (P-theta, IMEP, EGT, BSFC) - priorytet Faza 1 w TODO.md.
-- Dane i parametry: czesc "magicznych" wartosci bez jawnego zrodla (audyt po Fazie 0 w TODO.md).
+- Geometria/kinematyka: czesc danych to estymacje (oznaczone w docs/PARAMETRY_SILNIKA.md), nie wszystkie maja twarde zrodla pomiarowe.
+- Kalibracja na prawdziwych danych pomiarowych (P-theta trace, EGT z hamowni) - kolejny poziom wiernosci (docs/validation_report.md §7).
+- Mapa EGR: plik w repo uszkodzony (stala ~850) - walidacja MAF z mapy EGR wstrzymana do poprawnego zrzutu (docs/MAPY_ECU_KONWENCJE.md §4).
+- Faza 3 (ML/DL): cel ML, przyspieszenie i wersjonowanie datasetow, baseline model (TODO.md).
+- Dane i parametry: audyt "magicznych" wartosci bez jawnego zrodla (TODO.md, kryteria zgodnosci na koniec fazy).
+- Full-chem: celowo poza zakresem na tym etapie.
 
 ## 1.1) Zrodla danych w repo (start)
 - `engine_reference_sources.yaml` (parametry bazowe + zrodla)

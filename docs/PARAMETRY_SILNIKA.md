@@ -15,7 +15,7 @@ Podstawowe wymiary definiujące kinematykę i objętość roboczą silnika.
 | Skok tłoka (stroke) | 95.5 | mm | VW SSP 198, ETKA |
 | Długość korbowodu | 144.0 | mm | ETKA, Mahle Datasheet |
 | Promień wykorbienia | 47.75 | mm | 🧮 Obliczone (`stroke / 2`) |
-| Odsadzenie osi cylindra (desaxage) | 0.5 | mm | CAD models EA827, `kompletna_lista_z_danymi.md` |
+| Odsadzenie osi cylindra (desaxage) | 0.5 | mm | CAD models EA827, `docs/sources/kompletna_lista_z_danymi_SCALONA.md` |
 | Rozstaw cylindrów | 88.0 | mm | `docs/sources/kompletna_lista_z_danymi_rozszerzona.md` |
 | Wysokość kompresyjna tłoka | 45.80 | mm | `docs/sources/kompletna_lista_z_danymi_rozszerzona.md` |
 | Średnica sworznia tłokowego | 26.00 | mm | `docs/sources/kompletna_lista_z_danymi_rozszerzona.md` |

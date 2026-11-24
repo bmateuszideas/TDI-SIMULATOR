@@ -38,6 +38,25 @@ class TestCliRegression(unittest.TestCase):
         self.assertNotIn("VP37HydraulicConfig(...)", src)
         self.assertNotIn("estimate_pilot_ratio(...)", src)
 
+    def test_version_exposed_and_printable(self):
+        import io
+        from contextlib import redirect_stdout
+
+        import virtual_tdi
+
+        self.assertTrue(isinstance(virtual_tdi.__version__, str))
+        self.assertTrue(len(virtual_tdi.__version__) > 0)
+        buf = io.StringIO()
+        with self.assertRaises(SystemExit) as cm, redirect_stdout(buf):
+            _args(["--version"])
+        self.assertEqual(cm.exception.code, 0)
+        self.assertIn(virtual_tdi.__version__, buf.getvalue())
+
+    def test_help_epilog_lists_subcommands(self):
+        p = _make_argparser()
+        for cmd in ("dataset", "compare", "validate", "gui"):
+            self.assertIn(cmd, p.epilog)
+
 
 if __name__ == "__main__":
     unittest.main()
