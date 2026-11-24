@@ -191,10 +191,17 @@ class SimulationConfig:
     # Total fuel per cylinder per cycle (4-stroke) in mg.
     fuel_mg_per_cycle_per_cyl: float = 20.0
     # Gamma model (per spec): gamma(T) = 1.38 - 0.0001*T
-    gamma_t0: float = 1.38
-    gamma_slope_per_k: float = 1.0e-4
-    gamma_min: float = 1.10
-    gamma_max: float = 1.40
+    # gamma(T) for the simple backend: saturating exponential fit to air /
+    # burned-gas tables (Heywood Ch. 2): 1.405 @ 300 K, 1.334 @ 800 K,
+    # 1.294 @ 1800 K, 1.288 @ 2400 K. Replaces the old linear fit which gave
+    # gamma 1.14 @ 2400 K (unphysically compressible) - the validation had
+    # been running on that biased thermodynamics (docs/validation_report.md).
+    gamma_t0: float = 1.4904
+    gamma_inf: float = 1.2856
+    gamma_t_ref_k: float = 555.7
+    gamma_slope_per_k: float = 0.0   # legacy linear slope (unused when 0)
+    gamma_min: float = 1.24
+    gamma_max: float = 1.45
     combustion: CombustionConfig = CombustionConfig()
     heat_transfer: HeatTransferConfig = HeatTransferConfig()
     thermo_backend: Literal["simple", "coolprop"] = "coolprop"
@@ -213,9 +220,14 @@ class SimulationConfig:
     # empirical FMEP vs speed for DI diesels); C: load term via peak pressure
     # (Millington-Hartles style). Initial calibration values; refine on
     # reference points in TODO.md Faza 1 (docs/validation_report.md).
+    # FMEP = A + B*(rpm/1000) + C*Pmax_bar [bar]. Calibrated (K1 rework) on
+    # the corrected-gamma thermodynamics: B=0.25 fits rated power (70.8 kW
+    # vs 66 ref) and peak torque (203 Nm) simultaneously; C kept at 0 because
+    # the C*Pmax formulation (bar/bar * Pmax in bar) yields unphysical FMEP
+    # at full load (~2.6 bar at 129 bar peak-P).
     fmep_a_bar: float = 1.0
-    fmep_b_bar_per_krpm: float = 0.12
-    fmep_c_bar_per_bar: float = 0.02
+    fmep_b_bar_per_krpm: float = 0.25
+    fmep_c_bar_per_bar: float = 0.0
 
 
 @dataclass

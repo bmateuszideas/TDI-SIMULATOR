@@ -218,8 +218,10 @@ class TestPerceptionStability(unittest.TestCase):
         tail = res.samples[-5:]
         mean_rpm = sum(s.rpm for s in tail) / len(tail)
         # Sensor lag/delay/noise degrades the governor's steady-state
-        # accuracy slightly vs the ideal-feedback case; bound reflects that.
-        self.assertGreater(mean_rpm, 1250.0)
-        self.assertLess(mean_rpm, 1700.0)
+        # accuracy vs ideal feedback; with the recalibrated FMEP (B=0.25,
+        # K1 rework) the part-load brake torque is lower, so the noisy
+        # governor settles slightly further from target. Bound reflects both.
+        self.assertGreater(mean_rpm, 1150.0)
+        self.assertLess(mean_rpm, 1750.0)
         # perceived rpm lags the true rpm in the transient phase
         self.assertTrue(all(hasattr(s, "rpm_perceived") for s in res.samples))
