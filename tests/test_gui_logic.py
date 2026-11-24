@@ -204,7 +204,7 @@ class SpecCoverageTest(unittest.TestCase):
         }
         spec_names.add("mode")
         for action in CLI_PARSER._actions:
-            if action.dest in ("help",):
+            if action.dest in ("help", "version"):
                 continue
             self.assertIn(
                 action.dest,

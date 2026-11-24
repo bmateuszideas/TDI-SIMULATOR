@@ -60,7 +60,20 @@ def _default_schedule() -> InjectionSchedule:
 
 
 def _make_argparser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Virtual 1.9 TDI - white-box 0D simulator (full 720° cycle or closed)")
+    from . import __version__
+
+    p = argparse.ArgumentParser(
+        description="Virtual 1.9 TDI - white-box 0D simulator (full 720° cycle or closed)",
+        epilog=(
+            "subcommands (run as `python -m virtual_tdi <cmd> --help`):\n"
+            "  dataset    physics-first synthetic dataset generator (ML/DL)\n"
+            "  compare    tuner what-if: compare hardware/calibration variants at one operating point\n"
+            "  validate   compare simulation against ALH reference points / ECU map grid\n"
+            "  gui        Tk panel with tabs for all CLI parameters, presets, JSON configs"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     p.add_argument(
         "--engine-config",
         type=Path,

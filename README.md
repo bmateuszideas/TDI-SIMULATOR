@@ -1,183 +1,162 @@
-# 1.9TDI-WIRTUALNY_KLON
+# Virtual TDI — cyfrowy bliźniak 1.9 TDI (ALH)
 
-Repo zawiera implementację "cyfrowego ducha" 1.9 TDI jako białoskrzynkowy symulator 0D.
+White-box symulator 0D silnika **VW 1.9 TDI ALH (pompa VP37)** — "cyfrowy duch":
+żadnych czarnych skrzynek, każdy efekt ma jawne równanie, każdy parametr ma źródło.
 
-## Dokumenty
-- `docs/ROADMAP_CYFROWY_DUCH.md`
-- `docs/CHECKLIST_CYFROWY_DUCH.md`
-- `docs/BASELINE_MAPY_ECU_I_OSPRZET.md`
+**Cel produktu** (pełna definicja w [docs/PRODUCT.md](docs/PRODUCT.md)): wirtualny
+warsztat tunera i diagnosty, którego rdzeń fizyczny jest walidowany na fabrycznych
+mapach ECU i punktach referencyjnych ALH 90 KM, a którego drugim produktem jest
+fabryka danych "z fizyki" dla ML/DL.
 
-## Bazowa kalibracja map (ważne)
+Stan: 137 testów zielonych · walidacja 3/3 punktów ALH + 12/12 siatki map ECU · CI green (Python 3.12).
 
-Wszystkie fabryczne mapy ECU, które są w repo (SOI / N146 / SmokeLimiter / EGR / BOOST) należy traktować jako **skalibrowane pod konkretną konfigurację osprzętu**:
+## Szybki start
 
-- Wtryskiwacze: końcówka `0.184 x 5` (średnica otworka × liczba otworów).
-- Pompa VP37: krzywka/tarcza `DE110` (profil w `skok_tloczka_vp37_de110.csv`).
-- Wałek rozrządu / wznios zaworów: profil z `profil_krzywek_4cylindry.md`.
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
 
-Jeśli podmieniasz końcówki (np. `0.205`) lub inne elementy, **te mapy nie są już “tym samym ECU”** w sensie kalibracji. To jest bardzo dobra informacja dla ML/DL: traktuj wariant osprzętu jako cechę/klasę i ucz model na danych z różnych konfiguracji (lub używaj odpowiednich map dla danej konfiguracji).
-
-## Mapy ECU a fizyka (ważne)
-
-Mapy ECU w repo są **referencją/warstwą sterownika**, a nie “silnikiem” symulatora. Symulator ma być modelem fizycznym; mapy:
-- pomagają odwzorować zachowanie seryjnego ECU (warstwa “Inteligencja”),
-- mogą służyć jako ograniczenia (np. smoke limiter) lub cele regulatorów,
-- nie powinny zastępować mechaniki/termo/chemii.
-
-Jeśli chcesz generować dane stricte “z fizyki” (do ML/DL), uruchamiaj dataset bez map (`python -m virtual_tdi dataset ...` domyślnie nie używa map) albo w symulacji ustaw `--ecu off` i steruj wejściami jawnie.
-
-## Warsztat tunera (co-jeśli)
-
-Porównanie wariantów osprzętu/kalibracji na jednym punkcie pracy —
-odpowiedź na pytania typu "co się stanie po założeniu końcówek 0.205":
-
+python -m virtual_tdi --version
+python -m virtual_tdi --help                 # wszystkie flagi symulacji + lista subkomend
 ```
+
+Pierwsza symulacja (pełny cykl 720°: gazowymiana + sprężanie + spalanie + rozprężanie + wydech):
+
+```bash
+python -m virtual_tdi --mode full --rpm 1500 --fuel diesel --fuel-mg 20 --out out
+# wyniki: out/cycle.csv, out/metrics.txt, out/p_t.png, out/heat.png, out/pv.png, out/mass.png
+```
+
+## Cztery zastosowania
+
+### 1. Warsztat tunera — "co jeśli" (`compare`, GUI, fault-injection)
+
+Porównanie wariantów osprzętu/kalibracji w jednym punkcie pracy:
+
+```bash
 python -m virtual_tdi compare --rpm 1900 --fuel-mg 36 \
   --variant stock \
   --variant nozzles_0.205:nozzle-diameter=0.205 \
   --variant timing_plus2:soi-offset=-2.0
 ```
 
-Wypisuje tabelę: torque / moc / IMEP / peak-P / BSFC / EGT / czas trwania
-wtrysku / wałek turbo dla każdego wariantu. Uwaga: przy stałej komendowanej
-dawce zmiana końcówki zmienia szybkość/fazowanie wtrysku (ścieżka
-hydrauliczna), nie masę paliwa — różnice vs stock są fizycznie małe; łącz
-z `fuel-mg`/`boost-bar`, by badać granice wariantu.
+Tabela: torque / moc / IMEP / peak-P / BSFC / EGT / czas wtrysku / wałek turbo per wariant.
+Uwaga: przy stałej dawce zmiana końcówki zmienia szybkość/fazowanie wtrysku (ścieżka
+hydrauliczna), nie masę paliwa — łącz z `fuel-mg`/`boost-bar`, by badać granice wariantu.
 
-## Walidacja
+Fault-injection (diagnostyka): `--boost-leak-frac 0.1`, `--maf-underread-frac 0.2`,
+`--egr-fraction 0.3` — fizyczna reakcja modelu na usterkę; klasyfikator wzorców
+z logów VCDS: `virtual_tdi/vcds_logs.py` (kanon: [docs/DIAGNOSTYKA_VCDS.md](docs/DIAGNOSTYKA_VCDS.md)).
 
-Porównanie symulacji z punktami referencyjnymi ALH 90 KM (patrz
-`docs/validation_report.md` i TODO.md Faza 1):
+GUI (panel Tk, presety, zapis/odczyt konfiguracji JSON):
 
-```
-python -m virtual_tdi validate
-```
-
-## Quickstart
-
-1) Zainstaluj zależności z `requirements.txt` w swoim środowisku.
-
-```
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+```bash
+python -m virtual_tdi gui
 ```
 
-Opcjonalne narzędzia ML/DL i kalibracji (nieużywane przez rdzeń symulatora) są w `requirements-ml.txt`.
+### 2. Walidacja — "czy model wie, jakie błędy robi" (`validate`)
 
-2) Sprawdź CLI:
-
+```bash
+python -m virtual_tdi validate            # 3 punkty referencyjne ALH 90 KM → 3/3 PASS
+python -m virtual_tdi validate --map-grid # siatka 12 punktów z fabrycznych map ECU → 12/12 PASS
 ```
-python -m virtual_tdi --help
+
+Raport z analizą odchyłek: [docs/validation_report.md](docs/validation_report.md);
+punkty referencyjne: `validation/reference_points.yaml`.
+
+### 3. Symulacja pracy w czasie (`--mode transient`, MVEM)
+
+Governor PI steruje dawką, wał ma bezwładność, turbo ma dynamikę wałka
+(bilans momentu `J·dω/dt` z map GT1749V); w każdym kroku liczony pełny cykl 720°:
+
+```bash
+python -m virtual_tdi --mode transient --rpm 1500 --rpm-start 1450 --rpm-target 1500 \
+  --load-torque-nm 80 --load-step-s 3 --transient-end-s 8 --transient-dt-s 0.1 --out out
+# wyniki: out/transient.csv + out/transient.png (rpm / IQ / momenty / ciśnienie dolotu)
 ```
 
-## Run
-
-3) GUI (pełny panel z zakładkami dla wszystkich parametrów CLI — tryby full/closed/transient,
-presety, zapis/wczytywanie konfiguracji JSON, podgląd wyjścia na żywo):
-
-`python -m virtual_tdi gui`
-
-Konfiguracje GUI zapisywane są jako JSON i można je wczytać ponownie w GUI
-(lub przekazać ręcznie przez CLI — GUI pokazuje pełne polecenie w logu przed uruchomieniem).
-
-4) Pełny cykl 720° (gazowymiana + sprężanie + spalanie + rozprężanie + wydech):
-
-`python -m virtual_tdi --mode full --rpm 1500 --fuel diesel --fuel-mg 20 --out out`
-
-Dobór dawki paliwa pod zadaną moc (prosty “governor” dla CHP):
-
-`python -m virtual_tdi --mode full --rpm 1500 --fuel diesel --target-brake-kw 10 --fuel-mg-min 2 --fuel-mg-max 40 --out out`
-
-Sterowanie dawką przez napięcie N146 (jeśli masz mapę napięcie↔IQ w repo):
-
-`python -m virtual_tdi --mode full --rpm 1500 --n146-mv 2500 --out out`
-
-Tryb ECU (limity dymienia + EGR + target boost z map):
-
-`python -m virtual_tdi --mode full --ecu limit --rpm 1500 --n146-mv 2500 --out out`
-
-Użycie target boost jako warunku brzegowego dolotu (tymczasowo, bez dynamiki turbo):
-
-`python -m virtual_tdi --mode full --ecu limit --use-boost-map --rpm 1500 --n146-mv 2500 --out out`
-
-Turbo coupling (bilans mocy turbina→sprężarka, iteracyjne dopasowanie p_intake):
-
-`python -m virtual_tdi --mode full --turbo --turbo-iters 5 --rpm 1500 --n146-mv 2500 --out out`
-
-Generowanie danych syntetycznych (do ML/DL) z symulatora:
-
-Fizyka-first (bez map ECU, boost losowany):
-
-`python -m virtual_tdi dataset --n 5000 --rpm-min 1500 --rpm-max 1500 --ecu off --p-intake-min 1.0 --p-intake-max 1.8 --fuel-temp-min 20 --fuel-temp-max 90 --iq-basis volume --nozzles 0.184,0.205,0.216,0.230 --step-deg 1.0 --out data/synthetic.csv`
-
-ECU-first (używa map jeśli są w repo):
-
-`python -m virtual_tdi dataset --n 5000 --rpm-min 1500 --rpm-max 1500 --ecu limit --use-soi-map --use-n146-map --use-boost-map --fuel-temp-min 20 --fuel-temp-max 90 --iq-basis volume --nozzles 0.184,0.205 --step-deg 1.0 --out data/synthetic_ecu.csv`
-
-Sweep kąta wtrysku (SOI main):
-
-`python -m virtual_tdi --mode full --rpm 1500 --fuel diesel --fuel-mg 20 --soi-main-sweep -14:-2:1 --out out`
+Krok czasowy nie większy niż ~0.1 s (jawny Euler na bezwładności wału 0.35 kg·m²).
 
 Cykl zamknięty (tylko sprężanie/spalanie/rozprężanie):
 
-`python -m virtual_tdi --mode closed --rpm 1500 --fuel diesel --fuel-mg 20 --out out`
+```bash
+python -m virtual_tdi --mode closed --rpm 1500 --fuel diesel --fuel-mg 20 --out out
+```
 
-Wyniki:
-- `out/cycle.csv`
-- `out/metrics.txt`
-- `out/p_t.png`, `out/heat.png`, `out/pv.png` (oraz dla full: `out/mass.png`)
+### 4. Fabryka danych dla ML/DL (`dataset`)
 
-## Co jest zaimplementowane
+```bash
+# fizyka-first (bez map ECU, boost losowany) — domyślnie:
+python -m virtual_tdi dataset --n 5000 --rpm-min 1500 --rpm-max 1500 --ecu off \
+  --p-intake-min 1.0 --p-intake-max 1.8 --nozzles 0.184,0.205,0.216,0.230 --out data/synthetic.csv
 
-- Geometria układu korbowego z desaxage (offset): `V(θ)` oraz `dV/dθ`.
-- Termodynamika 0D z `γ(T)` i stratami ciepła (Woschni simplified).
-- Spalanie Double‑Wiebe (pilot + main) z opóźnieniem zapłonu (model Arrhenius / stałe).
-- Pełny cykl 720° z gazowymianą: przepływ ściśliwy przez zawory (model kryzy).
-- Jeśli istnieje plik `profil_krzywek_4cylindry.md`, solver używa go jako tabeli wzniosu zaworów (zamiast sinusów).
-- Uproszczony wpływ VP37/paliwa: opóźnienie hydrauliczne przewodu (`--line-m`) przesuwa SOI.
-  - Przykład: `--line-m 0.4` (ok. 2–3° opóźnienia przy 1500 RPM, zależnie od paliwa).
-- Jeśli istnieje `Mapa Kąta Początku Wtrysku (SOI) dla silnika 1.9 TDI - Table 1.csv`, a nie podasz `--soi-main`, SOI main jest brane z tej mapy (oś: RPM i IQ mg/suw).
-- Jeśli istnieje `Mapa napięcia pompy N146 - VW Golf IV ALH 90hp - Table 1.csv`, w `metrics.txt` pojawia się `n146_mv_est`, a opcja `--n146-mv` pozwala wyznaczyć IQ z napięcia.
-- Jeśli istnieje `skok_tloczka_vp37_de110.csv`, a `--duration-model` to `auto` (domyślnie), czas trwania wtrysku main jest wyliczany z profilu krzywki VP37 (funkcja IQ i cylindra), a w `metrics.txt` pojawia się `duration_main_deg`.
-- - `--hrr-model`: `auto` (domyślna — wybiera `vp37_main`, gdy w CWD jest `skok_tloczka_vp37_de110.csv`, w przeciwnym razie `wiebe`), `wiebe`, `vp37_main`, `hydraulic_profile` (profil wtrysku z modelu 1D iglicy/linii; pilot spala się jako Wiebe, profil main normalizowany do zadanej dawki).
-- Jeśli masz `skok_tloczka_vp37_de110.csv`, możesz też ustawić `--hrr-model vp37_main`, żeby kształt wydzielania ciepła main był oparty o kształt dm_fuel/dθ z VP37 (pilot nadal Wiebe). W `cycle.csv` pojawia się `dm_fuel_main_mg_per_deg`.
-- Jeśli masz `SmokeLimiter___interpolowana_mapa_maksymalnego_IQ.csv` i `Mapa_EGR___interpolowana_mapa_MAF.csv`, tryb `--ecu limit` ogranicza IQ przez smoke limiter (na podstawie MAF target z mapy EGR) i zapisuje `maf_target_mg_per_stroke` oraz `smoke_iq_max_mg_per_stroke` w `metrics.txt`.
-- Jeśli masz `Mapa_BOOST___interpolowana_mapa_ci_nienia_do_adowania.csv`, w `metrics.txt` pojawia się `boost_target_mbar_abs` (oraz opcjonalnie `--use-boost-map` ustawia `p_intake` jako ciśnienie absolutne: `boost_target_mbar_abs / 1000` bar abs — mapy boost traktujemy jako ciśnienie absolutne, spójnie w CLI i datasecie).
-- Backendy fizyki: `--thermo-backend coolprop` (domyślny — CoolProp musi być zainstalowany przy `--strict-backends`, patrz quickstart), `--flow-backend fluids` (domyślnie `simple`).
-- Mapy ECU, profil VP37 i profil zaworów są wykrywane względem katalogu bieżącego (CWD) — uruchamiaj z root repo albo podaj ścieżki przez `--soi-map/--n146-map/--vp37-cam/--valve-table`.
-- ~~Ograniczenie modelu: masa paliwa nie jest doliczana do masy ładunku~~ — **naprawione** (Faza 2.B.2): spalone paliwo wchodzi do bilansu masy ładunku zsynchronizowane z HRR; termika mieszaniny γ(T,x) z ułamkiem spalin (Faza 2.B.1).
-- Opóźnienie zapłonu: `--ignition-delay arrhenius|fixed_deg` (dla `fixed_deg` ustaw `--ignition-delay-deg`).
+# ECU-first (mapy z repo):
+python -m virtual_tdi dataset --n 5000 --rpm-min 1500 --rpm-max 1500 --ecu limit \
+  --use-soi-map --use-n146-map --use-boost-map --out data/synthetic_ecu.csv
+```
 
-## Tests
+## Mapy ECU a fizyka (ważne)
 
-`python -m unittest discover -s tests -p "test_*.py" -v`
+Mapy ECU w repo (SOI / N146 / SmokeLimiter / EGR / BOOST) to **warstwa sterownika
+i referencja**, nie "silnik" symulatora. Są skalibrowane pod konkretny osprzęt:
+końcówka `0.184 × 5`, pompa VP37 `DE110`, rozrząd z `profil_krzywek_4cylindry.md`
+(patrz [docs/BASELINE_MAPY_ECU_I_OSPRZET.md](docs/BASELINE_MAPY_ECU_I_OSPRZET.md)).
+Przy podmianie końcówek te mapy nie są już "tym samym ECU" — traktuj wariant
+osprzętu jako cechę w danych ML. Do danych strict "z fizyki" używaj `dataset`
+bez map (`--ecu off`, domyślnie) lub `--ecu off` w symulacji.
+Kanon osi/jednostek map: [docs/MAPY_ECU_KONWENCJE.md](docs/MAPY_ECU_KONWENCJE.md)
+("mg/suw" = na cylinder na suw; hierarchia SmokeLimiter > EGR).
 
-## CI
+## Dokumentacja
 
-CI działa na GitHub Actions (Python 3.12) i uruchamia testy z katalogu `tests`.
+- [docs/PRODUCT.md](docs/PRODUCT.md) — cel produktu, persony, powierzchnie, non-goals, metryki sukcesu
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — mapa modułów per warstwa, przepływ danych
+- [docs/IO_CONTRACT.md](docs/IO_CONTRACT.md) — kontrakt wejść/wyjść (metryki, CSV, dataset)
+- [docs/WORKFLOW.md](docs/WORKFLOW.md) — dev → CI → release, polityka pinów zależności
+- [docs/validation_report.md](docs/validation_report.md) — raport walidacji i znane odchyłki
+- [docs/PARAMETRY_SILNIKA.md](docs/PARAMETRY_SILNIKA.md) — katalog parametrów z źródłami
+- [docs/DIAGNOSTYKA_VCDS.md](docs/DIAGNOSTYKA_VCDS.md) — kanon logów VCDS i klasyfikator usterek
+- [docs/ROADMAP_CYFROWY_DUCH.md](docs/ROADMAP_CYFROWY_DUCH.md), [docs/CHECKLIST_CYFROWY_DUCH.md](docs/CHECKLIST_CYFROWY_DUCH.md), [TODO.md](TODO.md) — roadmapa i plan
+- [docs/REVIEW.md](docs/REVIEW.md) — pełny przegląd kodu i dokumentacji
+- `docs/sources/` — surowe listy danych i źródła; `docs/history/` — raporty historyczne
+- `CYFROWY_DUCH_FUNDAMENTALNE_ZALOZENIA.md` — manifest filozofii projektu
 
-## Tryb transient (MVEM)
+## Co jest zaimplementowane (rdzeń fizyczny)
 
-Symulacja pracy silnika w czasie: governor PI steruje dawką (IQ), wał korbowy ma bezwładność, dolot podąża za celem boost z opóźnieniem turbo (stała czasowa 1. rzędu). W każdym kroku czasowym liczony jest pełny cykl 720°.
+- Geometria układu korbowego z desaxage: `V(θ)`, `dV/dθ`.
+- Termodynamika 0D z `γ(T, x)` (blend powietrze/spaliny) i stratami ciepła
+  (Woschni uproszczony, 3 powierzchnie ścian; temperatury z YAML/CLI).
+- Spalanie Double-Wiebe (pilot + main) z opóźnieniem zapłonu (Arrhenius z capem)
+  lub HRR z profilu VP37 (`--hrr-model vp37_main|hydraulic_profile|wiebe`).
+- Pełny cykl 720° z gazowymianą: przepływ przez zawory (model kryzy, przepływy
+  odwrotne), dynamiczne kolektory, EGR; masa paliwa w bilansie ładunku.
+- Wtrysk: profil krzywki VP37 DE110 (`skok_tloczka_vp37_de110.csv`), opóźnienie
+  hydrauliczne linii (`--line-m`), dynamika iglicy, pilot+main.
+- Mapy ECU wykrywane względem CWD (uruchamiaj z root repo lub podaj ścieżki
+  `--soi-map/--n146-map/--smoke-map/--egr-map/--boost-map/--vp37-cam/--valve-table`);
+  SOI main domyślnie z mapy SOI; `--n146-mv` wyznacza IQ z napięcia N146.
+- Turbo: mapy GT1749V (`validation/turbo_map_gt1749v.yaml`), dynamika wałka,
+  feedforward z mapy BOOST (`--turbo`, `--use-boost-map`, `--ecu limit`).
+- Percepcja ECU (opóźnienia/filtry/szum czujników) w pętli transient.
+- Backendy: `--thermo-backend coolprop` (tablicowany, ~1 s/cykl) / `simple`;
+  `--flow-backend fluids|simple`; `--integrator rk4|scipy`.
 
-`python -m virtual_tdi --mode transient --rpm 1500 --rpm-start 1450 --rpm-target 1500 --load-torque-nm 80 --load-step-s 3 --transient-end-s 8 --transient-dt-s 0.1 --out out`
+## Testy i CI
 
-Uwaga: kroku czasowego transient nie należy powiększać powyżej ~0.1 s — jawny Euler całkowania wałka korbowego (inercja 0.35 kg·m²) traci wtedy stabilność. Dawka paliwa jest ograniczona szybkością zmiany `dq_drop_rate_s` (mg/s), co modeluje bezwładność pompy VP37.
+```bash
+python -m unittest discover -s tests -p "test_*.py" -v   # 137 testów
+```
 
-Wyniki:
-- `out/transient.csv` (rpm, IQ, moment hamowniczy, obciążenie, moc, p_intake, IMEP, peak pressure w czasie)
-- `out/transient.png` (4 panele: rpm / IQ / momenty / ciśnienie dolotu)
+CI (GitHub Actions, Python 3.12): testy + bramki jakości (`--help`, import, smoke run)
+— `.github/workflows/ci.yml`. Wydania tagowane z `main` ([docs/WORKFLOW.md](docs/WORKFLOW.md)).
 
-Parametry strojenia: `--gov-kp`, `--gov-ki`, `--inertia-kg-m2`, `--turbo-tau-s`, `--boost-target-bar`.
+## Struktura repo
 
-## Wydajność (backend CoolProp)
-
-Własności CoolProp (cp, cv, gamma, p(rho,T)) są tablicowane na siatce (T, log p) i (T, log rho) przy pierwszym użyciu (budowa ~3 s), potem lookup bilinearny w czystym Pythonie. Pełny cykl 720° z backendem coolprop: ~1 s (wcześniej ~70 s), błąd interpolacji < 0.5%.
-
-## Co dalej (kolejne etapy)
-- Turbo/boost: mapy sprężarki/turbiny + dynamika wałka turbo (obecnie: bilans mocy lub lag 1. rzędu).
-- Warstwa ECU (EDC15): percepcja (czujniki, filtry, opóźnienia) i strojenie.
-- Kalibracja governorów transient na dane pomiarowe.
-
-- VP37 “głębiej”: tłoczek, fala ciśnienia, iglica/dysza, dwie fazy otwarcia.
+```
+virtual_tdi/    kod pakietu (patrz docs/ARCHITECTURE.md — warstwy 1-4)
+tests/          137 testów unittest
+validation/     punkty referencyjne ALH + mapa turbo GT1749V + check spójności map
+docs/           dokumentacja produktu (patrz wyżej)
+*.csv, *.md     mapy ECU, profil VP37, profil rozrządu (dane źródłowe w root)
+engine_reference_sources.yaml   źródło prawdy parametrów fizycznych (z source per parametr)
+```
